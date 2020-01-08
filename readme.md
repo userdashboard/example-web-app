@@ -1,4 +1,6 @@
-# Converting hastebin to a web app with user accounts and organizations
+# Example web app
+
+## Converting hastebin to a web app with user accounts and organizations
 
 [Hastebin](https://github.com/seejohnrun/haste-server) is a 'pastebin' web application you post code and text to share.  The application has no user accounts, all posts are anonymous and publicly accessible via a generated URL.  This conversion is based on `hastebin`'s source code.
 
@@ -6,7 +8,7 @@
 
 When the conversion is complete `hastebin` will run with a Dashboard server and users will access it through the Dashboard server's URL, with registration and organizations provided by Dashboard.
 
-## Part one:  Verifying Dashboard requests
+### Part one:  Verifying Dashboard requests
 
 The `hastebin` web server is compatible with Express so the `@userdashboard/express-application-server` middleware is added, it verifies requests come from your own dashboard server.  Adding it to the `server.js` requires binding it to each HTTP method.
 
@@ -24,7 +26,7 @@ The middleware only identifies if the request came from your dashboard server, i
       ...
     })
   
-## Part two:  Extending the Hastebin Document API
+### Part two:  Extending the Hastebin Document API
 
 The `document.js` provides an API for creating and retrieving documents from storage.  The `hastebin` project already supported reading and writing documents but it needs to also support deleting and listing and orgnaizations.
 
@@ -125,7 +127,7 @@ The `document.js` needs to remove posts:
       await fsa.unlink(`${basePath}/${md5(key)}`)
     }
 
-## Part three: Extending the Hastebin HTTP server
+### Part three: Extending the Hastebin HTTP server
 
 The HTTP API in `server.js` uses the document API in `document.js` to save and retrieve the user's posts from storage.  The `server.js` already supports creating and retrieving, it just needs additions for deleting and listing.  The original `hastebin` allowed access to all posts via public URL, we are retaining that as an optional setting.
 
@@ -273,7 +275,7 @@ The `server.js` needs a route for identifying the user in browser:
       return res.end('window.user = ' + JSON.stringify(whois))
     }
     
-## Part four:  Redesigning the HTML interface for users &amp; organizations
+### Part four:  Redesigning the HTML interface for users &amp; organizations
       
 The original layout was a textarea, with a logo and strip of icons for saving/copying posts.  A new interface was created with the additional options.
 
@@ -372,7 +374,7 @@ Settings were added when creating posts to select a language, allow posts to be 
       <option>Optionally share with organization</option>
     </select>
     
-## Part five:  JavaScript for the new interface
+### Part five:  JavaScript for the new interface
 
 The HTML interface is controlled by JavaScript in `app.js`.  Since the HTML is primarily new markup it required mostly new code.
 
@@ -545,7 +547,7 @@ The `app.js` needs to toggle interface elements depending on what you are viewin
       elements['post-creator'].style.display = type === 'post-creator' ? 'block' : 'none'
     }
 
-## Part six: Setting up Dashboard
+### Part six: Setting up Dashboard
 
 Dashboard accompanies application servers as a separate server.  It is set up with `NPM`.  The organizations module is added to extend Dashboard with more content and API routes.
 
