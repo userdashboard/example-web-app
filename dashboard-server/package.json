@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha *.test.js --recursive --no-colors --timeout 600000 --slow 600000"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@userdashboard/dashboard": "^1.0.96",
+    "@userdashboard/organizations": "^1.0.12",
+    "server-html": "^9.0.0"
+  },
+  "dashboard": {
+    "title": "Hastebin",
+    "modules": [
+      "@userdashboard/organizations"
+    ]
+  }
+}
