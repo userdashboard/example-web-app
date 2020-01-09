@@ -23,10 +23,11 @@ const mimeTypes = {
 
 let server
 module.exports = {
-  start: (port, host) => {
-    server = http.createServer(app).listen(port, host)
+  start: async (port, host) => {
+    server = await http.createServer(app).listen(port, host)
+    console.log('ready')
   },
-  stop: () => {
+  stop: async () => {
     if (server) {
       server.close()
       server = null

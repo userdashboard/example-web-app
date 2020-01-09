@@ -6,7 +6,7 @@ window.onload = function () {
     /* content */ 'list', 'organization-list', 'post-content', 'post-creator',
     /* viewing posts  */ 'view', 'view-organization', 'view-organization-post-owner', 'postid-1', 'postid-2', 'postid-3', 'line-numbers', 'post-preview', 'delete-1', 'delete-3',
     /* listing posts  */ 'list-table', 'organization-list-table', 'no-posts-1', 'no-posts-2',
-    /* creating posts */ 'post-textarea', 'customid', 'language', 'public', 'organization', 'organization-container', 'save']
+    /* creating posts */ 'post-textarea', 'customid', 'language', 'public', 'organization', 'organization-container', 'submit-button']
   for (var i = 0, len = cacheElements.length; i < len; i++) {
     elements[cacheElements[i]] = document.getElementById(cacheElements[i])
   }
@@ -44,7 +44,7 @@ window.onload = function () {
     elements['organization-container'].style.display = 'none'
   }
   // other content buttons
-  elements.save.onclick = saveNewDocument
+  elements['submit-button'].onclick = saveNewDocument
   elements['delete-1'].onclick = deletePost
   elements['delete-3'].onclick = deletePost
   // clear default text when clicking textarea

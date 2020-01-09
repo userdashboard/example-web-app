@@ -1,30 +1,30 @@
-const path = require('path')
+/* eslint-env mocha */
 const childProcess = require('child_process')
 global.applicationPath = __dirname
-/* eslint-env mocha */
 const fs = require('fs')
-const convertingHTML = fs.readFileSync('../readme.md').toString()
+const pasteText = fs.readFileSync('../readme.md').toString()
 let applicationServer
 const TestHelper = require('@userdashboard/dashboard/test-helper.js')
 
 before((callback) => {
-  applicationServer = childProcess.execFile('../application-server/start-dev.sh')
-  return callback()
+  applicationServer = childProcess.exec('bash ../application-server/start-dev.sh')
+  applicationServer.stdout.on('data', (buffer) => {
+    if (buffer.toString().indexOf('ready') > -1) {
+      return callback()
+    }
+  })  
 })
 
-after((callback) => {
+after(async () => {
   if (applicationServer) {
-    applicationServer.stdin.pause()
     applicationServer.kill()
   }
-  return callback()
 })
 
-describe('hastebin-web-app-with-organizations', () => {
-  it('user 1 registers (screenshots)', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
+describe('web-app-with-organizations', () => {
+  it('user 1 registers', async () => {
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.filename = '/src/www/integrations/user-creates-account.test.js'
     req.screenshots = [
       { save: true },
       { click: '/account/register' },
@@ -41,37 +41,38 @@ describe('hastebin-web-app-with-organizations', () => {
   })
 
   it('user 1 creates post', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
+    const user = await TestHelper.createUser()
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
-    req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
-        body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
-        }
+    req.account = user.account
+    req.session = user.session
+    req.filename = '/src/www/integrations/user-creates-post.test.js'
+    req.screenshots = [{ 
+      fill: '#post-creator', 
+      body: {
+        'post-textarea': pasteText,
+        customid: 'readme.md',
+        language: 'MarkDown',
+        organization: 'Workplace'
       }
-    ]
+    }]
     const page = await req.post()
   })
 
   it('user 1 creates organization', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
+    const user = await TestHelper.createUser()
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.account = user.account
+    req.session = user.session
+    req.filename = '/src/www/integrations/user-creates-organization.test.js'
     req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      { hover: '#account-menu-container' },
+      { click: '/account/organizations' },
+      { click: '/account/organizations/create-organization' },
+      {
+        fill: '#submit-form',
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
+          name: 'Developers',
+          email: 'organization@email.com'
         }
       }
     ]
@@ -79,37 +80,27 @@ describe('hastebin-web-app-with-organizations', () => {
   })
 
   it('user 1 creates invitation', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
+    const user = await TestHelper.createUser()
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.account = user.account
+    req.session = user.session
+    req.filename = '/src/www/integrations/user-creates-invitation.test.js'
     req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      { hover: '#account-menu-container' },
+      { click: '/account/organizations' },
+      { click: '/account/organizations/create-organization' },
+      {
+        fill: '#submit-form',
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
+          name: 'Developers',
+          email: 'organization@email.com'
         }
-      }
-    ]
-    const page = await req.post()
-  })
-
-  it('user 2 creates account', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
-    const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
-    req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      },
+      { click: '/account/organizations/create-invitation' },
+      {
+        fill: '#submit-form',
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
+          code: 'secret'
         }
       }
     ]
@@ -119,7 +110,7 @@ describe('hastebin-web-app-with-organizations', () => {
   it('user 2 accepts invitation', async () => {
     // user1 registers, creates a post, then creates an organization and an invitation
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.filename = '/src/www/integrations/user-accepts-invitation.test.js'
     req.screenshots = [
       { save: true },
       { click: '/account/register' },
@@ -138,7 +129,7 @@ describe('hastebin-web-app-with-organizations', () => {
   it('user 2 creates shared post', async () => {
     // user1 registers, creates a post, then creates an organization and an invitation
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.filename = '/src/www/integrations/user-creates-shared-post.test.js'
     req.screenshots = [
       { save: true },
       { click: '/account/register' },
@@ -157,7 +148,7 @@ describe('hastebin-web-app-with-organizations', () => {
   it('user 1 accesses shared post', async () => {
     // user1 registers, creates a post, then creates an organization and an invitation
     const req = TestHelper.createRequest('/')
-    req.filename = 'hastebin-web-app-with-organizations'
+    req.filename = '/src/www/integrations/user-access-shared-post.test.js'
     req.screenshots = [
       { save: true },
       { click: '/account/register' },
@@ -180,7 +171,7 @@ describe('hastebin-web-app-with-organizations', () => {
 //       {
 //         fill: '#something',
 //         body: {
-//           'post-textarea': convertingHTML,
+//           'post-textarea': pasteText,
 //           customid: 'screenshots',
 //           language: 'HTML'
 //         }
