@@ -4,10 +4,13 @@ global.applicationPath = __dirname
 const fs = require('fs')
 const pasteText = fs.readFileSync('../readme.md').toString()
 let applicationServer
-const TestHelper = require('@userdashboard/dashboard/test-helper.js')
+const TestHelper = require('@userdashboard/organizations/test-helper.js')
 
 before((callback) => {
   applicationServer = childProcess.exec('bash ../application-server/start-dev.sh')
+  applicationServer.stderr.on('data', (error) => {
+    console.log(error.toString())
+  })
   applicationServer.stdout.on('data', (buffer) => {
     if (buffer.toString().indexOf('ready') > -1) {
       return callback()
@@ -26,7 +29,6 @@ describe('web-app-with-organizations', () => {
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/integrations/user-creates-account.test.js'
     req.screenshots = [
-      { save: true },
       { click: '/account/register' },
       { 
         fill: '#submit-form', 
@@ -40,9 +42,10 @@ describe('web-app-with-organizations', () => {
     const page = await req.get()
   })
 
-  it('user 1 creates post', async () => {
+  it.only('user 1 creates post', async () => {
     const user = await TestHelper.createUser()
-    const req = TestHelper.createRequest('/')
+    const req = TestHelper.createRequest('/home')
+    req.waitOnSubmit = true
     req.account = user.account
     req.session = user.session
     req.filename = '/src/www/integrations/user-creates-post.test.js'
@@ -51,8 +54,7 @@ describe('web-app-with-organizations', () => {
       body: {
         'post-textarea': pasteText,
         customid: 'readme.md',
-        language: 'MarkDown',
-        organization: 'Workplace'
+        language: 'MarkDown'
       }
     }]
     const page = await req.post()
@@ -60,7 +62,7 @@ describe('web-app-with-organizations', () => {
 
   it('user 1 creates organization', async () => {
     const user = await TestHelper.createUser()
-    const req = TestHelper.createRequest('/')
+    const req = TestHelper.createRequest('/home')
     req.account = user.account
     req.session = user.session
     req.filename = '/src/www/integrations/user-creates-organization.test.js'
@@ -81,7 +83,7 @@ describe('web-app-with-organizations', () => {
 
   it('user 1 creates invitation', async () => {
     const user = await TestHelper.createUser()
-    const req = TestHelper.createRequest('/')
+    const req = TestHelper.createRequest('/home')
     req.account = user.account
     req.session = user.session
     req.filename = '/src/www/integrations/user-creates-invitation.test.js'
@@ -108,18 +110,32 @@ describe('web-app-with-organizations', () => {
   })
 
   it('user 2 accepts invitation', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
+    const user = await TestHelper.createUser()
+    global.userProfileFields = ['display-name', 'display-email']
+    await TestHelper.createProfile(user, {
+      'display-name': user.profile.firstName,
+      'display-email': user.profile.contactEmail
+    })
+    await TestHelper.createOrganization(user, {
+      email: 'organization@' + user.profile.displayEmail.split('@')[1],
+      name: 'My organization',
+      profileid: user.profile.profileid
+    })
+    await TestHelper.createInvitation(user)
+    const user2 = await TestHelper.createUser()
     const req = TestHelper.createRequest('/')
+    req.account = user2.account
+    req.session = user2.session
     req.filename = '/src/www/integrations/user-accepts-invitation.test.js'
     req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      { hover: '#account-menu-container' },
+      { click: '/account/organizations' },
+      { click: '/account/organizations/accept-invitation' },
+      {
+        fill: '#submit-form',
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
+          invitationid: user.invitation.invitationid,
+          'secret-code': user.invitation.secretCode
         }
       }
     ]
@@ -127,121 +143,91 @@ describe('web-app-with-organizations', () => {
   })
 
   it('user 2 creates shared post', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
-    const req = TestHelper.createRequest('/')
+    const user = await TestHelper.createUser()
+    global.userProfileFields = ['display-name', 'display-email']
+    await TestHelper.createProfile(user, {
+      'display-name': user.profile.firstName,
+      'display-email': user.profile.contactEmail
+    })
+    await TestHelper.createOrganization(user, {
+      email: 'organization@' + user.profile.displayEmail.split('@')[1],
+      name: 'My organization',
+      profileid: user.profile.profileid
+    })
+    await TestHelper.createInvitation(user)
+    const user2 = await TestHelper.createUser()
+    global.userProfileFields = ['display-name', 'display-email']
+    await TestHelper.createProfile(user2, {
+      'display-name': user2.profile.firstName,
+      'display-email': user2.profile.contactEmail
+    })
+    await TestHelper.acceptInvitation(user2, user)
+    const req = TestHelper.createRequest('/home')
+    req.account = user2.account
+    req.session = user2.session
     req.filename = '/src/www/integrations/user-creates-shared-post.test.js'
     req.screenshots = [
-      { save: true },
-      { click: '/account/register' },
+      { save: true }, 
       { 
-        fill: '#submit-form', 
+        fill: '#post-creator', 
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
-        }
+          'post-textarea': pasteText,
+          customid: 'readme.md',
+          language: 'MarkDown',
+          organization: 'My organization'
       }
-    ]
+    }]
     const page = await req.post()
   })
 
-  it('user 1 accesses shared post', async () => {
-    // user1 registers, creates a post, then creates an organization and an invitation
-    const req = TestHelper.createRequest('/')
-    req.filename = '/src/www/integrations/user-access-shared-post.test.js'
-    req.screenshots = [
+  it('user 1 views shared post', async () => {
+    const user = await TestHelper.createUser()
+    global.userProfileFields = ['display-name', 'display-email']
+    await TestHelper.createProfile(user, {
+      'display-name': user.profile.firstName,
+      'display-email': user.profile.contactEmail
+    })
+    await TestHelper.createOrganization(user, {
+      email: 'organization@' + user.profile.displayEmail.split('@')[1],
+      name: 'My organization',
+      profileid: user.profile.profileid
+    })
+    await TestHelper.createInvitation(user)
+    const user2 = await TestHelper.createUser()
+    global.userProfileFields = ['display-name', 'display-email']
+    await TestHelper.createProfile(user2, {
+      'display-name': user2.profile.firstName,
+      'display-email': user2.profile.contactEmail
+    })
+    await TestHelper.acceptInvitation(user2, user)
+    const req = TestHelper.createRequest('/home')
+    req.account = user2.account
+    req.session = user2.session
+    req.body = {
+      'post-textarea': pasteText,
+      customid: 'readme.md',
+      language: 'MarkDown',
+      organization: 'My organization'
+    }
+    await req.post()
+    const req2 = TestHelper.createRequest('/')
+    req2.account = user.account
+    req2.session = user.session
+    req2.filename = '/src/www/integrations/user-views-shared-post.test.js'
+    req2.screenshots = [
       { save: true },
-      { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      { hover: '#account-menu-container' },
+      { click: '/account/organizations' },
+      { click: '/account/organizations/create-organization' },
+      {
+        fill: '#submit-form',
         body: {
-          username: 'FirstUser',
-          password: '12345678',
-          confirm: '12345678'
+          name: 'Developers',
+          email: 'organization@email.com'
         }
       }
     ]
-    const page = await req.post()
+    const page = await req2.get()
+
   })
 })
-
-
-
-
-//       {
-//         fill: '#something',
-//         body: {
-//           'post-textarea': pasteText,
-//           customid: 'screenshots',
-//           language: 'HTML'
-//         }
-//       },
-//       { hover: '#account-menu-container' },
-//       { click: '/account/organizations' },
-//       { click: '/account/organizations/create-organization' },
-//       {
-//         fill: '#submit-form',
-//         body: {
-//           name: 'Developers',
-//           email: 'organization@email.com'
-//         }
-//       },
-//       { click: '/account/organizations/create-invitation' },
-//       {
-//         fill: '#submit-form',
-//         body: {
-//           code: 'secret'
-//         }
-//       }
-//     ]
-//     await req.get()
-//     //
-//     const invitations = await global.api.administrator.organizations.Invitations.get({})
-//     console.log(invitations)
-//     const invitationid = invitations[0].invitationid
-//     // user2 registers and uses the invitation to join the organization
-//     const req3 = TestHelper.createRequest('/')
-//     req3.filename = 'hastebin-web-app-with-organizations'
-//     req3.screenshots = [
-//       { click: '/account/register' },
-//       { 
-//         fill: '#submit-form', 
-//         body: {
-//           username: 'SecondUser',
-//           password: '87654321',
-//           confirm: '87654321'
-//         }
-//       },
-//       { hover: '#account-menu-container' },
-//       { click: '/account/organizations' },
-//       { click: '/account/organizations/accept-invitation' },
-//       {
-//         fill: '#submit-form',
-//         body: {
-//           name: 'Workplace',
-//           email: 'person@workplace',
-//           invitationid: invitationid,
-//           code: 'secret'
-//         }
-//       },
-//       { click: '/' },
-//       {
-//         fill: '#submit-form',
-//         body: {
-//           'post-textarea': convertingJS,
-//           customid: 'screenshots.js',
-//           language: 'JavaScript',
-//           organization: 'Workplace'
-//         }
-//       }
-//     ]
-//     // user1 opens the shared post
-//     const req4 = TestHelper.createRequest('/home')
-//     req4.filename = 'hastebin-web-app-with-organizations'
-//     req4.screenshots = [
-//       { click: '/' },
-//       { click: '/organization-posts' },
-//       { click: 'screenshots.js' }
-//     ]
-//   })
-// })
