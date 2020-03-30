@@ -3,7 +3,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha *.test.js --recursive --no-colors --timeout 600000 --slow 600000"
+    "test": "mocha *.test.js --recursive --bail --no-colors --timeout 1800000 --slow 1800000"
   },
   "author": "",
   "license": "ISC",
