@@ -1,5 +1,7 @@
 cd "$(dirname "$0")"
-npm install &&
+if [ ! -d node_modules ]; then
+  npm install
+fi
 APPLICATION_SERVER_TOKEN="this is the token" \
 APPLICATION_SERVER="http://localhost:8213" \
 DASHBOARD_SERVER="http://localhost:8207" \

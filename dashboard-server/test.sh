@@ -4,9 +4,10 @@
 if [ ! -d node_modules/puppeteer ]; then
   npm install puppeteer --no-save
 fi
+
 PARAMS=""
 if [ ! -z "$1" ]; then
-  PARAMS="$PARAMS -- --grep $1"
+  PARAMS="-- --grep $1"
 fi
 
 FAST_START=true \

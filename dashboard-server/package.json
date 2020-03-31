@@ -8,8 +8,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@userdashboard/dashboard": "^1.0.101",
-    "@userdashboard/organizations": "^1.0.55",
+    "@userdashboard/dashboard": "^1.0.147",
+    "@userdashboard/organizations": "^1.0.62",
     "server-html": "^9.0.0"
   },
   "dashboard": {

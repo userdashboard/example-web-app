@@ -47,6 +47,7 @@ app.use(route((router) => {
   const cache = {}
   // home page and static files
   app.use(async (req, res, next) => {
+    console.log(req.url)
     res.statusCode = 200
     const urlPath = req.url.split('?')[0]
     if (urlPath === '/' || urlPath === '/index') {
@@ -69,6 +70,10 @@ app.use(route((router) => {
       return next()
     }
     if (req.url === '/whois.js') {
+      if (!req.verified) {
+        res.end()
+        return next()
+      }
       const whois = {
         accountid: req.accountid,
         sessionid: req.sessionid

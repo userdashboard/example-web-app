@@ -1,8 +1,9 @@
 /* eslint-env mocha */
+const assert = require('assert')
 const childProcess = require('child_process')
 global.applicationPath = __dirname
 const fs = require('fs')
-const pasteText = fs.readFileSync('../readme.md').toString()
+const pasteText = fs.readFileSync('./node_modules/@userdashboard/dashboard/readme.md').toString()
 let applicationServer
 const TestHelper = require('@userdashboard/organizations/test-helper.js')
 
@@ -15,16 +16,18 @@ before((callback) => {
     if (buffer.toString().indexOf('ready') > -1) {
       return callback()
     }
+    console.log(buffer.toString())
   })  
 })
 
 after(async () => {
   if (applicationServer) {
-    applicationServer.kill()
+    await applicationServer.kill()
+    applicationServer = null
   }
 })
 
-describe('web-app-with-organizations', () => {
+describe('example-web-app', () => {
   it('user 1 registers', async () => {
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/integrations/user-creates-account.test.js'
@@ -40,6 +43,7 @@ describe('web-app-with-organizations', () => {
       }
     ]
     const result = await req.get()
+    assert.strictEqual(1, 1)
   })
 
   it('user 1 creates post', async () => {
@@ -57,6 +61,7 @@ describe('web-app-with-organizations', () => {
       }
     }]
     const result = await req.post()
+    assert.strictEqual(1, 1)
   })
 
   it('user 1 creates organization', async () => {
@@ -73,11 +78,14 @@ describe('web-app-with-organizations', () => {
         fill: '#submit-form',
         body: {
           name: 'Developers',
-          email: 'organization@email.com'
+          email: 'organization@email.com',
+          'display-name': 'pm',
+          'display-email': 'pm@email.com'
         }
       }
     ]
     const result = await req.post()
+    assert.strictEqual(1, 1)
   })
 
   it('user 1 creates invitation', async () => {
@@ -106,6 +114,7 @@ describe('web-app-with-organizations', () => {
       }
     ]
     const result = await req.post()
+    assert.strictEqual(1, 1)
   })
 
   it('user 2 accepts invitation', async () => {
@@ -139,6 +148,7 @@ describe('web-app-with-organizations', () => {
       }
     ]
     const result = await req.post()
+    assert.strictEqual(1, 1)
   })
 
   it('user 2 creates shared post', async () => {
@@ -177,9 +187,10 @@ describe('web-app-with-organizations', () => {
       }
     }]
     const result = await req.post()
+    assert.strictEqual(1, 1)
   })
 
-  it('user 1 views shared post', async () => {
+  it.only('user 1 views shared post', async () => {
     const user = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
     await TestHelper.createProfile(user, {
@@ -227,6 +238,6 @@ describe('web-app-with-organizations', () => {
       }
     ]
     const result = await req2.get()
-
+    assert.strictEqual(1, 1)
   })
 })

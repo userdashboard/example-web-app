@@ -1,4 +1,4 @@
-@userdashboard/dashboard 1.0.96
+@userdashboard/dashboard 1.0.147
 
 
 Administrator menu:
@@ -16,7 +16,7 @@ Special HTML files:
 @userdashboard/dashboard/src/redirect.html
 
 Dashboard modules:
-@userdashboard/organizations (1.0.54)
+@userdashboard/organizations (1.0.62)
 
 URL ----------------------------------------------------------- AUTH - TEMPLATE - HTTP REQUESTS - NODEJS ------------------------- HTML ---------------------------
 /                                                               GUEST  FULLSCREEN GET                                              @userdashboard/organizations    
@@ -62,7 +62,7 @@ URL ----------------------------------------------------------- AUTH - TEMPLATE 
 /account/sessions                                                                 GET             @userdashboard/dashboard         @userdashboard/dashboard        
 /account/set-default-profile                                                      GET POST        @userdashboard/dashboard         @userdashboard/dashboard        
 /account/signin                                                 GUEST  FULLSCREEN GET POST        @userdashboard/dashboard         @userdashboard/dashboard        
-/account/signout                                                       FULLSCREEN GET             @userdashboard/dashboard         @userdashboard/dashboard        
+/account/signout                                                GUEST  FULLSCREEN GET             @userdashboard/dashboard         @userdashboard/dashboard        
 /account/signout-complete                                       GUEST  FULLSCREEN GET                                              @userdashboard/dashboard        
 /account/verify                                                 GUEST  FULLSCREEN GET POST        @userdashboard/dashboard         @userdashboard/dashboard        
 /administrator                                                                    GET                                              @userdashboard/dashboard        
