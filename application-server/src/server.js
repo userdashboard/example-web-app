@@ -45,31 +45,25 @@ app.use(route((router) => {
   const homePage = fs.readFileSync(path.join(__dirname, '/www/home.html')).toString()
   const indexPage = fs.readFileSync(path.join(__dirname, '/www/index.html')).toString()
   const cache = {}
-  app.use(async (req, res, next) => {
+  app.use(async (req, res) => {
     res.statusCode = 200
     const urlPath = req.url.split('?')[0]
     if (urlPath === '/' || urlPath === '/index') {
       res.setHeader('content-type', 'text/html')
-      res.end(indexPage)
-      return next()
+      return res.end(indexPage)
     }
     if (req.accountid) {
       if (urlPath === '/home') {
         res.setHeader('content-type', 'text/html')
         if (global.publicDomain) {
-          res.end(homePage.replace('</html>', `<script>
+          return res.end(homePage.replace('</html>', `<script>
     window.publicDomain = "${global.publicDomain}" 
   </script></html>`))
         } else {
-          res.end(homePage)
+          return res.end(homePage)
         }
-        return next()
       }
       if (req.url === '/whois.js') {
-        if (!req.verified) {
-          res.end()
-          return next()
-        }
         const whois = {
           accountid: req.accountid,
           sessionid: req.sessionid
@@ -83,31 +77,27 @@ app.use(route((router) => {
       }
     }
     if (!req.url.startsWith('/public/')) {
-      dashboardError(res)
-      return next()
+      return dashboardError(res)
     }
     const filePath = path.join(__dirname, '/www' + req.url.split('?')[0])
     if (!fs.existsSync(filePath)) {
       res.statusCode = 404
-      res.end()
-      return next()
+      return res.end()
     }
     const extension = filePath.split('.').pop().toLowerCase()
     const contentType = mimeTypes[extension]
     if (!contentType) {
       res.statusCode = 404
-      res.end()
-      return next()
+      return res.end()
     }
     const blob = cache[filePath] = cache[filePath] || fs.readFileSync(filePath)
     res.setHeader('content-type', contentType)
     res.setHeader('content-length', blob.length)
-    res.end(blob)
-    return next()
+    return res.end(blob)
   })
   // raw posts
   router.get('/document/:id/raw', async (req, res) => {
-    if (!req.verified) {
+    if (!req.accountid) {
       return dashboardError(res)
     }
     const key = req.params.id
@@ -183,7 +173,7 @@ app.use(route((router) => {
   })
   // list of posts
   router.get('/documents', async (req, res) => {
-    if (!req.verified) {
+    if (!req.accountid) {
       return dashboardError(res)
     }
     let list
@@ -199,7 +189,7 @@ app.use(route((router) => {
   })
   // list of organization's posts
   router.get('/documents/organization/:id', async (req, res) => {
-    if (!req.verified) {
+    if (!req.accountid) {
       return dashboardError(res)
     }
     const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
@@ -229,7 +219,7 @@ app.use(route((router) => {
   })
   // delete posts
   router.delete('/document/:id', async (req, res) => {
-    if (!req.verified) {
+    if (!req.accountid) {
       return dashboardError(res)
     }
     const key = req.params.id
@@ -247,7 +237,7 @@ app.use(route((router) => {
   })
   // create posts
   router.post('/document', async (req, res) => {
-    if (!req.verified) {
+    if (!req.accountid) {
       return dashboardError(res)
     }
     let document
@@ -262,7 +252,7 @@ app.use(route((router) => {
   })
   // load posts
   router.get('/document/:id', async (req, res) => {
-    if (!req.verified) {
+    if (!req.acocuntid) {
       return dashboardError(res)
     }
     const key = req.params.id
@@ -302,7 +292,7 @@ const errorPage = fs.readFileSync(path.join(__dirname, '/error.html')).toString(
 function dashboardError (res) {
   res.setHeader('content-type', 'text/html')
   res.statusCode = 511
-  res.end(errorPage)
+  return res.end(errorPage)
 }
 
 function parsePostData (req, res, next) {
