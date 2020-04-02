@@ -1,4 +1,4 @@
-const applicationServer = require('@userdashboard/express-application-server')
+const expressApplicationServer = require('@userdashboard/express-application-server')
 const Busboy = require('busboy')
 const connect = require('connect')
 const dashboardServer = require('./dashboard-server.js')
@@ -39,15 +39,13 @@ const app = connect()
 if (global.rateLimit) {
   app.use(rateLimit(global.rateLimit))
 }
-app.use(applicationServer)
+app.use(expressApplicationServer)
 app.use(parsePostData)
 app.use(route((router) => {
   const homePage = fs.readFileSync(path.join(__dirname, '/www/home.html')).toString()
   const indexPage = fs.readFileSync(path.join(__dirname, '/www/index.html')).toString()
   const cache = {}
-  // home page and static files
   app.use(async (req, res, next) => {
-    console.log(req.url)
     res.statusCode = 200
     const urlPath = req.url.split('?')[0]
     if (urlPath === '/' || urlPath === '/index') {
@@ -55,37 +53,37 @@ app.use(route((router) => {
       res.end(indexPage)
       return next()
     }
-    if (urlPath === '/home') {
-      if (!req.verified) {
-        return dashboardError(res)
-      }
-      res.setHeader('content-type', 'text/html')
-      if (global.publicDomain) {
-        res.end(homePage.replace('</html>', `<script>
-  window.publicDomain = "${global.publicDomain}" 
-</script></html>`))
-      } else {
-        res.end(homePage)
-      }
-      return next()
-    }
-    if (req.url === '/whois.js') {
-      if (!req.verified) {
-        res.end()
+    if (req.accountid) {
+      if (urlPath === '/home') {
+        res.setHeader('content-type', 'text/html')
+        if (global.publicDomain) {
+          res.end(homePage.replace('</html>', `<script>
+    window.publicDomain = "${global.publicDomain}" 
+  </script></html>`))
+        } else {
+          res.end(homePage)
+        }
         return next()
       }
-      const whois = {
-        accountid: req.accountid,
-        sessionid: req.sessionid
+      if (req.url === '/whois.js') {
+        if (!req.verified) {
+          res.end()
+          return next()
+        }
+        const whois = {
+          accountid: req.accountid,
+          sessionid: req.sessionid
+        }
+        const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
+        if (organizations && organizations.length) {
+          whois.organizations = organizations
+        }
+        res.setHeader('content-type', 'text/javascript')
+        return res.end('window.user = ' + JSON.stringify(whois))
       }
-      const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
-      if (organizations && organizations.length) {
-        whois.organizations = organizations
-      }
-      res.setHeader('content-type', 'text/javascript')
-      return res.end('window.user = ' + JSON.stringify(whois))
     }
     if (!req.url.startsWith('/public/')) {
+      dashboardError(res)
       return next()
     }
     const filePath = path.join(__dirname, '/www' + req.url.split('?')[0])
