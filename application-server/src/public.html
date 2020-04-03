@@ -23,14 +23,10 @@
 						high = hljs.highlightAuto(post.document)
 					}
 				} catch (error) {
-					// failed highlight, fall back on auto
 					high = hljs.highlightAuto(post.document)
 				}
 				document.getElementById('post-preview').firstChild.innerHTML = high.value
-				addLineNumbers(post.document.split('\n').length)
-			}
-
-			function addLineNumbers(lineCount) {
+				var lineCount = post.document.split('\n').length
 				var h = ['<ol>']
 				for (var i = 0; i < lineCount; i++) {
 					h.push('<li></li>')

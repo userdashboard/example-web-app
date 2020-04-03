@@ -6,7 +6,7 @@ window.onload = function () {
     /* content */ 'list', 'organization-list', 'post-content', 'post-creator',
     /* viewing posts  */ 'view', 'view-organization', 'view-organization-post-owner', 'postid-1', 'postid-2', 'postid-3', 'line-numbers', 'post-preview', 'delete-1', 'delete-3',
     /* listing posts  */ 'list-table', 'organization-list-table', 'no-posts-1', 'no-posts-2',
-    /* creating posts */ 'post-textarea', 'customid', 'language', 'public', 'organization', 'organization-container', 'submit-button']
+    /* creating posts */ 'post-textarea', 'documentid', 'language', 'public', 'organization', 'organization-container', 'submit-button']
   for (var i = 0, len = cacheElements.length; i < len; i++) {
     elements[cacheElements[i]] = document.getElementById(cacheElements[i])
   }
@@ -15,7 +15,7 @@ window.onload = function () {
     elements['post-textarea'].value = ''
     elements['post-textarea'].focus()
     elements.language.selectedIndex = 0
-    elements.customid.value = ''
+    elements.documentid.value = ''
     return showContent('post-creator')
   }
   elements['list-button'].onclick = function () {
@@ -58,13 +58,13 @@ window.onload = function () {
     if (!extension) {
       return
     }
-    var newid = elements.customid.value
+    var newid = elements.documentid.value
     var oldPeriod = newid.indexOf('.')
     if (oldPeriod > -1) {
       newid = newid.substring(0, oldPeriod)
     }
     newid += '.' + extension
-    elements.customid.value = newid
+    elements.documentid.value = newid
   }
   // sets up your own posts with delete options
   listPosts()
@@ -83,9 +83,9 @@ window.onload = function () {
 }
 
 function listPosts (organizationid) {
-  var path = '/documents'
+  var path = '/api/user/documents'
   if (organizationid) {
-    path += '/organization/' + organizationid
+    path += '/api/user/organization-documents?organizationid=' + organizationid
   }
   return send(path, null, 'GET', function (error, posts) {
     if (error) {
@@ -105,7 +105,7 @@ function listPosts (organizationid) {
 function loadDocument (event) {
   event.preventDefault()
   var link = event.target
-  var path = '/document/' + link.innerHTML
+  var path = '/api/user/document?documentid=' + link.innerHTML
   elements['post-preview'].firstChild.innerHTML = ''
   elements['line-numbers'].innerHTML = ''
   return send(path, null, 'GET', function (error, result) {
@@ -128,10 +128,10 @@ function saveNewDocument () {
   if (isPublic.checked) {
     postSettings.public = true
   }
-  if (elements.customid.value) {
-    postSettings.customid = elements.customid.value
+  if (elements.documentid.value) {
+    postSettings.documentid = elements.documentid.value
     // validate here
-    var parts = postSettings.customid.split('.')
+    var parts = postSettings.documentid.split('.')
     if (parts.length > 2) {
       return showMessage('Filenames must be alphanumeric, with optional supported file extensions.')
     } else if (parts.length === 2) {
@@ -159,8 +159,9 @@ function saveNewDocument () {
     return showMessage('No document to save', 'error')
   }
   postSettings.document = encodeURI(elements['post-textarea'].value)
-  return send('/document', postSettings, 'POST', function (error, result) {
+  return send('/api/user/create-document', postSettings, 'POST', function (error, result) {
     if (error) {
+      console.log('exception', error)
       return showMessage(error.message, 'error')
     }
     renderPostRow(!postSettings.organization, result)
@@ -171,7 +172,7 @@ function saveNewDocument () {
 
 function deletePost (event) {
   var button = event.target
-  var path = '/document/' + button.key
+  var path = '/api/user/delete-document?documentid=' + button.key
   return send(path, null, 'DELETE', function (error) {
     if (error) {
       return showMessage(error.message, 'error')
@@ -297,6 +298,7 @@ function htmlEscape (s) {
 }
 
 function showMessage (message, css) {
+  console.log('got an error', message, css)
   throw new Error()
 }
 

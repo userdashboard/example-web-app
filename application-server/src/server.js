@@ -1,15 +1,18 @@
-const expressApplicationServer = require('@userdashboard/express-application-server')
-const Busboy = require('busboy')
-const connect = require('connect')
 const dashboardServer = require('./dashboard-server.js')
-const Document = require('./document.js')
+const expressApplicationServer = require('@userdashboard/express-application-server')
 const fs = require('fs')
 const http = require('http')
+const Multiparty = require('multiparty')
 const path = require('path')
 const querystring = require('querystring')
-const rateLimit = require('connect-ratelimit')
-const route = require('connect-route')
+const util = require('util')
 
+const fileCache = {}
+const errorPage = fs.readFileSync(path.join(__dirname, '/error.html')).toString()
+const homePage = fs.readFileSync(path.join(__dirname, '/home.html')).toString()
+const publicPage = fs.readFileSync(path.join(__dirname, '/public.html')).toString()
+const indexPage = fs.readFileSync(path.join(__dirname, '/index.html')).toString()
+const WhoIs = require('./whois.js')
 const mimeTypes = {
   js: 'text/javascript',
   css: 'text/css',
@@ -24,7 +27,7 @@ const mimeTypes = {
 let server
 module.exports = {
   start: async (port, host) => {
-    server = await http.createServer(app).listen(port, host)
+    server = await http.createServer(receiveRequest).listen(port, host)
     console.log('ready')
   },
   stop: async () => {
@@ -35,296 +38,180 @@ module.exports = {
   }
 }
 
-const app = connect()
-if (global.rateLimit) {
-  app.use(rateLimit(global.rateLimit))
-}
-app.use(expressApplicationServer)
-app.use(parsePostData)
-app.use(route((router) => {
-  const homePage = fs.readFileSync(path.join(__dirname, '/www/home.html')).toString()
-  const indexPage = fs.readFileSync(path.join(__dirname, '/www/index.html')).toString()
-  const cache = {}
-  app.use(async (req, res) => {
-    res.statusCode = 200
-    const urlPath = req.url.split('?')[0]
-    if (urlPath === '/' || urlPath === '/index') {
-      res.setHeader('content-type', 'text/html')
-      return res.end(indexPage)
-    }
-    if (req.accountid) {
-      if (urlPath === '/home') {
-        res.setHeader('content-type', 'text/html')
-        if (global.publicDomain) {
-          return res.end(homePage.replace('</html>', `<script>
-    window.publicDomain = "${global.publicDomain}" 
-  </script></html>`))
-        } else {
-          return res.end(homePage)
-        }
-      }
-      if (req.url === '/whois.js') {
-        const whois = {
-          accountid: req.accountid,
-          sessionid: req.sessionid
-        }
-        const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
-        if (organizations && organizations.length) {
-          whois.organizations = organizations
-        }
-        res.setHeader('content-type', 'text/javascript')
-        return res.end('window.user = ' + JSON.stringify(whois))
-      }
-    }
-    if (!req.url.startsWith('/public/')) {
-      return dashboardError(res)
-    }
-    const filePath = path.join(__dirname, '/www' + req.url.split('?')[0])
-    if (!fs.existsSync(filePath)) {
-      res.statusCode = 404
-      return res.end()
-    }
-    const extension = filePath.split('.').pop().toLowerCase()
-    const contentType = mimeTypes[extension]
-    if (!contentType) {
-      res.statusCode = 404
-      return res.end()
-    }
-    const blob = cache[filePath] = cache[filePath] || fs.readFileSync(filePath)
-    res.setHeader('content-type', contentType)
-    res.setHeader('content-length', blob.length)
-    return res.end(blob)
-  })
-  // raw posts
-  router.get('/document/:id/raw', async (req, res) => {
-    if (!req.accountid) {
-      return dashboardError(res)
-    }
-    const key = req.params.id
-    let document
-    try {
-      document = await Document.load(key, req)
-    } catch (error) {
-    }
-    if (!document) {
-      res.writeHead(404, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    if (req.accountid !== document.accountid) {
-      const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
-      let found = false
-      if (organizations && organizations.length) {
-        for (const organization of organizations) {
-          found = organization.organizationid === document.organizationid
-          if (found) {
-            break
-          }
-        }
-      }
-      if (!found) {
-        res.writeHead(500, { 'content-type': 'application/json' })
-        return res.end('{ "message": "An invalid document was provided" }')
-      }
-    }
-    res.writeHead(200, { 'content-type': 'text/plain' })
-    return res.end(document.buffer.toString())
-  })
-  // public posts
-  const publicPage = fs.readFileSync(path.join(__dirname, '/public.html')).toString()
-  router.get('/document/public/:id', async (req, res) => {
-    const key = req.params.id
-    let result
-    try {
-      result = await Document.load(key, req)
-    } catch (error) {
-    }
-    if (!result) {
-      res.writeHead(404, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    if (!result.public || req.headers.host !== global.publicDomain) {
-      res.writeHead(500, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    res.writeHead(200, { 'content-type': 'text/html' })
-    result.document = result.document.toString()
-    const tagged = publicPage.replace('<li>View public post</li>', '<li>View public post ' + key + '</li>')
-    return res.end(`${tagged}
-<script>window.post = ${JSON.stringify(result)}</script>`)
-  })
-  // raw public posts
-  router.get('/document/public/:id/raw', async (req, res) => {
-    const key = req.params.id
-    let document
-    try {
-      document = await Document.load(key, req)
-    } catch (error) {
-    }
-    if (!document) {
-      res.writeHead(404, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    if (!document.public || req.headers.host !== global.publicDomain) {
-      res.writeHead(500, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    res.writeHead(200, { 'content-type': 'text/plain' })
-    return res.end(document.buffer.toString())
-  })
-  // list of posts
-  router.get('/documents', async (req, res) => {
-    if (!req.accountid) {
-      return dashboardError(res)
-    }
-    let list
-    try {
-      list = await Document.list(`account/${req.accountid}`, req)
-    } catch (error) {
-    }
-    res.writeHead(200, { 'content-type': 'application/json' })
-    if (!list || !list.length) {
-      return res.end('[]')
-    }
-    return res.end(JSON.stringify(list))
-  })
-  // list of organization's posts
-  router.get('/documents/organization/:id', async (req, res) => {
-    if (!req.accountid) {
-      return dashboardError(res)
-    }
-    const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
-    let found = false
-    if (organizations && organizations.length) {
-      for (const organization of organizations) {
-        found = organization.organizationid === req.params.id
-        if (found) {
-          break
-        }
-      }
-    }
-    if (!found) {
-      res.writeHead(500, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    let list
-    try {
-      list = await Document.list(`organization/${req.params.id}`, req)
-    } catch (error) {
-    }
-    res.writeHead(200, { 'content-type': 'application/json' })
-    if (!list || !list.length) {
-      return res.end('[]')
-    }
-    return res.end(JSON.stringify(list))
-  })
-  // delete posts
-  router.delete('/document/:id', async (req, res) => {
-    if (!req.accountid) {
-      return dashboardError(res)
-    }
-    const key = req.params.id
-    let deleted
-    try {
-      deleted = await Document.remove(key, req)
-    } catch (error) {
-    }
-    if (!deleted) {
-      res.writeHead(500, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    res.writeHead(200, { 'content-type': 'application/json' })
-    return res.end()
-  })
-  // create posts
-  router.post('/document', async (req, res) => {
-    if (!req.accountid) {
-      return dashboardError(res)
-    }
-    let document
-    try {
-      document = await Document.create(req)
-    } catch (error) {
-      res.writeHead(500, { 'content-type': 'application/json' })
-      return res.end(`{ "message": "${error.message}" }`)
-    }
-    res.writeHead(200, { 'content-type': 'application/json' })
-    return res.end(JSON.stringify(document))
-  })
-  // load posts
-  router.get('/document/:id', async (req, res) => {
-    if (!req.acocuntid) {
-      return dashboardError(res)
-    }
-    const key = req.params.id
-    let result
-    try {
-      result = await Document.load(key, req)
-    } catch (error) {
-    }
-    if (!result) {
-      res.statusCode = 404
-      res.writeHead(404, { 'content-type': 'application/json' })
-      return res.end('{ "message": "An invalid document was provided" }')
-    }
-    if (req.accountid !== result.accountid) {
-      const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}`, req.accountid, req.sessionid)
-      let found = false
-      if (organizations && organizations.length) {
-        for (const organization of organizations) {
-          found = organization.organizationid === result.organizationid
-          if (found) {
-            break
-          }
-        }
-      }
-      if (!found) {
-        res.writeHead(500, { 'content-type': 'application/json' })
-        return res.end('{ "message": "An invalid document was provided" }')
-      }
-    }
-    res.writeHead(200, { 'content-type': 'application/json' })
-    result.document = result.document.toString()
-    return res.end(JSON.stringify(result))
-  })
-}))
-
-const errorPage = fs.readFileSync(path.join(__dirname, '/error.html')).toString()
-function dashboardError (res) {
-  res.setHeader('content-type', 'text/html')
-  res.statusCode = 511
-  return res.end(errorPage)
-}
-
-function parsePostData (req, res, next) {
-  if (req.method === 'GET' || req.method === 'OPTIONS' || req.method === 'HEAD') {
-    return next()
+const parsePostData = util.promisify((req, callback) => {
+  if (req.headers &&
+      req.headers['content-type'] &&
+      req.headers['content-type'].indexOf('multipart/form-data') > -1) {
+    return callback()
   }
-  const ct = req.headers['content-type']
-  if (ct && ct.startsWith('multipart/form-data')) {
-    if (!req.headers['content-length']) {
-      return next()
+  let body = ''
+  req.on('data', (data) => {
+    body += data
+  })
+  return req.on('end', () => {
+    if (!body) {
+      return callback()
+    }
+    return callback(null, body)
+  })
+})
+
+const parseMultiPartData = util.promisify((req, callback) => {
+  const form = new Multiparty.Form()
+  return form.parse(req, async (error, fields, files) => {
+    if (error) {
+      return callback(error)
     }
     req.body = {}
-    const busboy = new Busboy({ headers: req.headers })
-    busboy.on('field', (fieldname, val) => {
-      req.body[fieldname] = val
-    })
-    busboy.on('finish', next)
-    return req.pipe(busboy)
-  }
-  let body
-  req.on('data', (chunk) => {
-    body = body ? body + chunk : chunk
-  })
-  req.on('end', () => {
-    if (body) {
-      req.body = querystring.parse(body, '&', '=')
+    for (const field in fields) {
+      req.body[field] = fields[field][0]
     }
-    return next()
+    req.uploads = {}
+    for (const field in files) {
+      const file = files[field][0]
+      if (!file.size) {
+        continue
+      }
+      const extension = file.originalFilename.toLowerCase().split('.').pop()
+      const type = extension === 'png' ? 'image/png' : 'image/jpeg'
+      req.uploads[field] = {
+        type,
+        buffer: fs.readFileSync(file.path),
+        name: file.originalFilename
+      }
+      fs.unlinkSync(file.path)
+    }
+    return callback()
   })
-  return req.on('error', () => {
-    res.writeHead(500, { 'content-type': 'application/json' })
-    res.end('{ "message": "An error ocurred parsing the POST data" }')
-    return next()
+})
+
+async function staticFile (req, res) {
+  const extension = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase()
+  const mimeType = mimeTypes[extension]
+  if (!mimeType) {
+    return throw500(req, res)
+  }
+  let blob = fileCache[filePath]
+  if (blob) {
+    res.setHeader('content-type', mimeType)
+    return res.end(blob)
+  }
+  const filePath = path.join('./www', req.urlPath)
+  if (!fs.existsSync(filePath)) {
+    return throw404(req, res)
+  }
+  const stat = fs.statSync(filePath)
+  if (stat.isDirectory()) {
+    return throw404(req, res)
+  }
+  blob = fs.readFileSync(filePath)
+  fileCache[filePath] = blob
+  res.setHeader('content-type', mimeType)
+  return res.end(blob)
+}
+
+async function receiveRequest (req, res) {
+  req.urlPath = req.url.split('?')[0]
+  if (req.urlPath === '/') {
+    res.setHeader('content-type', 'text/html')
+    return res.end(indexPage)
+  }
+  if (req.urlPath.startsWith('/public/')) {
+    return staticFile(req, res)
+  }
+  await expressApplicationServer(req, res, async () => {
+    if (req.verified) {
+      req.accountid = req.headers['x-accountid']
+      req.sessionid = req.headers['x-sessionid']
+    }
+    if (!req.accountid) {
+      return throw511(req, res)
+    }
+    if (req.urlPath === '/home') {
+      res.setHeader('content-type', 'text/html')
+      if (global.publicDomain) {
+        return res.end(homePage.replace('</html>', `<script>window.publicDomain = "${global.publicDomain}"</script></html>`))
+      } else {
+        return res.end(homePage)
+      }
+    }
+    if (req.urlPath === '/whois.js') {
+      const whois = await WhoIs.get(req)
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      return res.end(JSON.stringify(whois))
+    }
+    if (!req.urlPath.startsWith('/api/')) {
+      return throw404(req, res)
+    }
+    if (!req.accountid) {
+      return throw511(req, res)
+    }
+    if (req.urlPath.startsWith('/administrator/')) {
+      const account = await dashboardServer.get(`/api/user/account?accountid=${req.accountid}`, req.accountid, req.sessionid)
+      if (!account.administrator) {
+        return throw500(req, res)
+      }
+    }
+    if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'PUT' || req.method === 'DELETE') {
+      if (req.headers['content-type'] && req.headers['content-type'].indexOf('multipart/form-data;') > -1) {
+        try {
+          await parseMultiPartData(req)
+        } catch (error) {
+          return throw500(req, res)
+        }
+      }
+      if (!req.body) {
+        try {
+          req.bodyRaw = await parsePostData(req)
+        } catch (error) {
+          return throw500(req, res)
+        }
+        if (req.bodyRaw) {
+          req.body = querystring.parse(req.bodyRaw, '&', '=')
+        }
+      }
+    }
+    const apiPath = path.join(`./www`, req.urlPath)
+    if (!fs.existsSync(apiPath)) {
+      return throw404(req, res)
+    }
+    const api = require(apiPath)
+    const method = req.method.toLowerCase()
+    if (!api[method]) {
+      return throw404(req, res)
+    }
+    let result
+    try {
+      result = await api[method](req)
+    } catch (error) {
+      return throw500(req, res)
+    }
+    if (!result) {
+      return throw500(req, res)
+    }
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    return res.end(JSON.stringify(result))
   })
+}
+
+function throw404 (req, res) {
+  return throwError(req, res, 404)
+}
+
+function throw500 (req, res) {
+  return throwError(req, res, 500)
+}
+
+function throw511 (req, res) {
+  return throwError(req, res, 511)
+}
+
+function throwError(req, res, error) {
+  if (req.urlPath.startsWith('/api/')) {
+    res.writeHead(error, { 'content-type': 'application/json; charset=utf-8' })
+    return res.end(`{ "error": "An error ${error} ocurred" }`) 
+  }
+  res.setHeader('content-type', 'text/html')
+  res.statusCode = error
+  return res.end(errorPage)
 }

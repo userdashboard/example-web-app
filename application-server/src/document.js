@@ -1,6 +1,5 @@
 const fs = require('fs')
 const crypto = require('crypto')
-const dashboardServer = require('./dashboard-server.js')
 const path = require('path')
 const util = require('util')
 const validExtensions = [
@@ -26,13 +25,18 @@ module.exports = {
   create,
   load,
   list,
+  listOrganization,
   remove
 }
 
-async function load (key, req) {
-  const filename = `${basePath}/${md5(key)}`
+async function load (documentid) {
+  if (!documentid || !documentid.length) {
+    throw new Error('invalid-documentid')
+  }
+  const md5Key = md5(documentid)
+  const filename = `${basePath}/${md5Key}`
   if (!fs.existsSync(filename)) {
-    throw new Error('invalid-key')
+    throw new Error('invalid-documentid')
   }
   createFolder(filename.substring(0, filename.lastIndexOf('/')))
   const object = await fsa.readFile(filename, 'utf8')
@@ -51,31 +55,48 @@ async function load (key, req) {
   return json
 }
 
-async function list (key, req) {
-  const folder = `${basePath}/${key}`
+async function list (accountid) {
+  const folder = `${basePath}/account/${accountid}`
   if (!fs.existsSync(folder)) {
     return null
   }
-  const list = await fsa.readDir(`${basePath}/${key}`, 'utf8')
+  const list = await fsa.readDir(folder, 'utf8')
   if (!list || !list.length) {
     return null
   }
   for (const n in list) {
-    let metadata = await fsa.readFile(`${basePath}/${key}/${list[n]}`)
+    let metadata = await fsa.readFile(`${folder}/${list[n]}`)
     metadata = JSON.parse(metadata)
-    list[n] = await load(metadata.key, req)
+    list[n] = await load(metadata.key)
   }
   return list
 }
 
-async function remove (key, req) {
-  const object = await load(key, req)
-  if (object.accountid !== req.accountid) {
-    throw new Error('invalid-document')
+async function listOrganization (organizationid) {
+  const folder = `${basePath}/organization/${organizationid}`
+  if (!fs.existsSync(folder)) {
+    return null
   }
-  var md5Key = md5(key)
-  if (fs.existsSync(`${basePath}/account/${req.accountid}/${md5Key}`)) {
-    await fsa.unlink(`${basePath}/account/${req.accountid}/${md5Key}`)
+  const list = await fsa.readDir(folder, 'utf8')
+  if (!list || !list.length) {
+    return null
+  }
+  for (const n in list) {
+    let metadata = await fsa.readFile(`${folder}/${list[n]}`)
+    metadata = JSON.parse(metadata)
+    list[n] = await load(metadata.key)
+  }
+  return list
+}
+
+async function remove (documentid) {
+  if (!documentid || !documentid.length) {
+    throw new Error('invalid-documentid')
+  }
+  const object = await load(documentid)
+  var md5Key = md5(documentid)
+  if (fs.existsSync(`${basePath}/account/${object.accountid}/${md5Key}`)) {
+    await fsa.unlink(`${basePath}/account/${object.accountid}/${md5Key}`)
   }
   if (object.organizationid) {
     if (fs.existsSync(`${basePath}/organization/${object.organizationid}/${md5Key}`)) {
@@ -86,30 +107,15 @@ async function remove (key, req) {
   return true
 }
 
-async function create (req) {
-  if (!req.body || !req.body.document || !req.body.document.length) {
+async function create (document, documentid, public, organizationid) {
+  if (!document || !document.length) {
     throw new Error('invalid-document')
   }
-  if (req.body.organizationid) {
-    let found = false
-    const organizations = await dashboardServer.get(`/api/user/organizations/organizations?accountid=${req.accountid}&all=true`, req.accountid, req.sessionid)
-    if (organizations && organizations.length) {
-      for (const organization of organizations) {
-        found = organization.organizationid === req.body.organizationid
-        if (found) {
-          break
-        }
-      }
-    }
-    if (!found) {
-      throw new Error('invalid-document-owner')
-    }
-  }
-  if (global.maxLength && req.body.document.length > global.maxLength) {
+  if (global.maxLength && document.length > global.maxLength) {
     throw new Error('invalid-document-length')
   }
-  if (req.body.customid) {
-    const parts = req.body.customid.split('.')
+  if (documentid) {
+    const parts = documentid.split('.')
     if (parts.length > 2) {
       throw new Error('invalid-filename')
     } else if (parts.length === 2) {
@@ -126,29 +132,29 @@ async function create (req) {
       }
     }
     try {
-      const existing = await load(req.body.customid, req)
+      const existing = await load(documentid, req)
       if (existing) {
-        throw new Error('duplicate-document-id')
+        throw new Error('duplicate-documentid')
       }
     } catch (error) {
     }
   }
-  const key = req.body.customid || await generateUniqueKey(req)
+  const key = documentid || await generateUniqueKey(req)
   const object = {
     accountid: req.accountid,
     created: Math.floor(new Date().getTime() / 1000),
     key: key
   }
-  if (req.body.public) {
+  if (public) {
     object.public = true
   }
-  if (req.body.organizationid) {
-    object.organizationid = req.body.organizationid
+  if (organizationid) {
+    object.organizationid = organizationid
   }
   var md5Key = md5(key)
   createFolder(`${basePath}`)
   await fsa.writeFile(`${basePath}/${md5Key}`, JSON.stringify(object), 'utf8')
-  await fsa.writeFile(`${basePath}/${md5Key}.raw`, req.body.document)
+  await fsa.writeFile(`${basePath}/${md5Key}.raw`, document)
   createFolder(`${basePath}/account/${req.accountid}`)
   await fsa.writeFile(`${basePath}/account/${req.accountid}/${md5Key}`, JSON.stringify(object))
   if (object.organizationid) {
