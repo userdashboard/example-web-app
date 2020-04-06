@@ -1,5 +1,6 @@
-@userdashboard/dashboard 1.0.147
-
+@userdashboard/dashboard 1.0.154
+http://localhost:8207 (dashboard)
+http://localhost:8213 (application)
 
 Administrator menu:
 /administrator/organizations "Organizations module"
@@ -16,7 +17,15 @@ Special HTML files:
 @userdashboard/dashboard/src/redirect.html
 
 Dashboard modules:
-@userdashboard/organizations (1.0.62)
+@userdashboard/organizations (1.0.69)
+
+Server handlers:
+/src/server/allow-api-request.js
+
+Proxy handlers:
+/src/proxy/x-account.js
+/src/proxy/x-memberships.js
+/src/proxy/x-organizations.js
 
 URL ----------------------------------------------------------- AUTH - TEMPLATE - HTTP REQUESTS - NODEJS ------------------------- HTML ---------------------------
 /                                                               GUEST  FULLSCREEN GET                                              @userdashboard/organizations    

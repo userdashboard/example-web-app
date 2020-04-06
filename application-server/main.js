@@ -4,13 +4,17 @@ global.publicDomain = process.env.PUBLIC_DOMAIN || false
 
 let server
 module.exports = {
-  start: async () => {
+  start: async (port) => {
     server = require('./src/server.js')
-    await server.start(process.env.APPLICATION_SERVER_PORT || process.env.PORT || 3000, process.env.HOST || 'localhost')
+    port = port || process.env.APPLICATION_SERVER_PORT || process.env.PORT || 3000
+    console.log('starting application server', port)
+    await server.start(port, process.env.HOST || 'localhost')
   },
   stop: async () =>{ 
     server.stop()
   }
 }
 
-module.exports.start()
+if (process.env.START_APPLICATION_SERVER !== 'false') {
+  module.exports.start()
+}

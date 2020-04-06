@@ -69,6 +69,7 @@ window.onload = function () {
   // sets up your own posts with delete options
   listPosts()
   // sets up your organization's posts
+  console.log('user', JSON.stringify(window.user))
   if (window.user.organizations && window.user.organizations.length) {
     for (i = 0, len = window.user.organizations.length; i < len; i++) {
       listPosts(window.user.organizations[i].organizationid)
@@ -77,17 +78,25 @@ window.onload = function () {
       option.text = window.user.organizations[i].name
       elements.organization.appendChild(option)
     }
+    console.log(elements.organization.innerHTML)
   }
   // display the initial content
-  showContent('post-creator')
+  var content = window.sessionStorage.getItem('content')
+  console.log('showing content', content)
+  showContent(content || 'post-creator')
+  if (content === 'post-content') {
+    var post = window.sessionStorage.getItem('post')
+    if (post) {
+      showPostContents(JSON.parse(post))
+    }
+  }
 }
 
 function listPosts (organizationid) {
-  var path = '/api/user/documents'
-  if (organizationid) {
-    path += '/api/user/organization-documents?organizationid=' + organizationid
-  }
+  var path = organizationid ? '/api/user/organization-documents?organizationid=' + organizationid : '/api/user/documents?accountid=' + window.user.account.accountid
+  console.log('listing posts', path)
   return send(path, null, 'GET', function (error, posts) {
+    console.log('posts', JSON.stringify(posts))
     if (error) {
       return showMessage(error.message, 'error')
     }
@@ -159,9 +168,10 @@ function saveNewDocument () {
     return showMessage('No document to save', 'error')
   }
   postSettings.document = encodeURI(elements['post-textarea'].value)
-  return send('/api/user/create-document', postSettings, 'POST', function (error, result) {
+  console.log('creating document', JSON.stringify(postSettings))
+  return send('/api/user/create-document?accountid=' + window.user.account.accountid, postSettings, 'POST', function (error, result) {
     if (error) {
-      console.log('exception', error)
+      console.log('exception', error.message, result, JSON.stringify(postSettings))
       return showMessage(error.message, 'error')
     }
     renderPostRow(!postSettings.organization, result)
@@ -205,6 +215,7 @@ function deletePost (event) {
 }
 
 function showPostContents (post) {
+  window.sessionStorage.setItem('post', JSON.stringify(post))
   if (!post.organizationid) {
     elements.view.style.display = ''
     elements['view-organization'].style.display = 'none'
@@ -239,6 +250,7 @@ function showPostContents (post) {
   }
   elements['post-preview'].firstChild.innerHTML = high.value
   elements['post-preview'].focus()
+  console.log('showing post contents', JSON.stringify(post, null, '  '))
   addLineNumbers(post.document.split('\n').length)
   return showContent('post-content')
 }
@@ -248,9 +260,10 @@ function renderPostRow (personal, meta) {
   var row = table.insertRow(table.rows.length)
   row.id = (personal ? 'personal-' : 'organization-') + meta.key
   var keyLink = document.createElement('a')
+  keyLink.id = meta.key
   keyLink.innerHTML = meta.key
   keyLink.onclick = loadDocument
-  keyLink.href = '#'
+  keyLink.href = '/document/' + meta.key
   var createdCell = row.insertCell(0)
   createdCell.innerHTML = new Date(meta.created * 1000)
   var keyCell = row.insertCell(1)
@@ -282,6 +295,8 @@ function renderPostRow (personal, meta) {
 }
 
 function showContent (type) {
+  console.log('showing content', type)
+  window.sessionStorage.setItem('content', type)
   // active content button
   elements['create-button'].className = type === 'post-creator' ? 'active' : ''
   elements['list-button'].className = type === 'list' ? 'active' : ''
@@ -298,8 +313,7 @@ function htmlEscape (s) {
 }
 
 function showMessage (message, css) {
-  console.log('got an error', message, css)
-  throw new Error()
+  console.log('got a message', message, css)
 }
 
 function addLineNumbers (lineCount) {

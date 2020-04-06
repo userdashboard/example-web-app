@@ -1,3 +1,5 @@
+const Document = require('../../../document.js')
+
 module.exports = {
   auth: false,
   get: async (req) => {

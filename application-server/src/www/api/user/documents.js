@@ -1,13 +1,22 @@
+const Document = require('../../../document.js')
+
 module.exports = {
  get: async (req) => {
-  let list
-  try {
-    list = await Document.list(req.accountid)
-  } catch (error) {
+   console.log('load documents', req.query, req.account, req.session)
+   if (!req.query || !req.query.accountid) {
+     throw new Error('invalid-accountid')
+   }
+   if (req.query.accountid !== req.accountid) {
+    throw new Error('invalid-account')
   }
-  if (!list || !list.length) {
-    return null
-  }
-  return list
- } 
+    let list
+    try {
+      list = await Document.list(req.query.accountid)
+    } catch (error) {
+    }
+    if (!list || !list.length) {
+      return null
+    }
+    return list
+  } 
 }

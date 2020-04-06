@@ -26,3 +26,5 @@ button.pure-button:hover { border-color: #333; background-image: none; backgroun
 a.pure-button-primary:hover,
 button.pure-button-primary:hover { border-color: #000; background-image: none; background-color: #000 !important; color: #FFF !important }
 .success { color: #FFF !important }
+select { background-color: #FFF }
+select option  { color: #000; background-color: #FFF }

@@ -26,6 +26,7 @@ module.exports = {
   load,
   list,
   listOrganization,
+  validExtensions,
   remove
 }
 
@@ -39,19 +40,20 @@ async function load (documentid) {
     throw new Error('invalid-documentid')
   }
   createFolder(filename.substring(0, filename.lastIndexOf('/')))
-  const object = await fsa.readFile(filename, 'utf8')
+  const object = await fsa.readFile(filename)
   if (!object || !object.length) {
     throw new Error('invalid-document')
   }
   let json
   try {
-    json = JSON.parse(object)
+    json = JSON.parse(object.toString())
   } catch (error) {
   }
   if (!json) {
     throw new Error('invalid-document')
   }
   json.document = await fsa.readFile(filename + '.raw')
+  json.document = json.document.toString()
   return json
 }
 
@@ -66,7 +68,7 @@ async function list (accountid) {
   }
   for (const n in list) {
     let metadata = await fsa.readFile(`${folder}/${list[n]}`)
-    metadata = JSON.parse(metadata)
+    metadata = JSON.parse(metadata.toString())
     list[n] = await load(metadata.key)
   }
   return list
@@ -83,8 +85,7 @@ async function listOrganization (organizationid) {
   }
   for (const n in list) {
     let metadata = await fsa.readFile(`${folder}/${list[n]}`)
-    metadata = JSON.parse(metadata)
-    list[n] = await load(metadata.key)
+    list[n] = JSON.parse(metadata.toString())
   }
   return list
 }
@@ -107,7 +108,7 @@ async function remove (documentid) {
   return true
 }
 
-async function create (document, documentid, public, organizationid) {
+async function create (document, documentid, public, accountid, organizationid) {
   if (!document || !document.length) {
     throw new Error('invalid-document')
   }
@@ -132,16 +133,16 @@ async function create (document, documentid, public, organizationid) {
       }
     }
     try {
-      const existing = await load(documentid, req)
+      const existing = await load(documentid)
       if (existing) {
         throw new Error('duplicate-documentid')
       }
     } catch (error) {
     }
   }
-  const key = documentid || await generateUniqueKey(req)
+  const key = documentid || await generateUniqueKey()
   const object = {
-    accountid: req.accountid,
+    accountid: accountid,
     created: Math.floor(new Date().getTime() / 1000),
     key: key
   }
@@ -151,20 +152,21 @@ async function create (document, documentid, public, organizationid) {
   if (organizationid) {
     object.organizationid = organizationid
   }
-  var md5Key = md5(key)
+  const md5Key = md5(key)
+  const objectJSON = JSON.stringify(object)
   createFolder(`${basePath}`)
-  await fsa.writeFile(`${basePath}/${md5Key}`, JSON.stringify(object), 'utf8')
-  await fsa.writeFile(`${basePath}/${md5Key}.raw`, document)
-  createFolder(`${basePath}/account/${req.accountid}`)
-  await fsa.writeFile(`${basePath}/account/${req.accountid}/${md5Key}`, JSON.stringify(object))
+  await fsa.writeFile(`${basePath}/${md5Key}`, objectJSON, 'utf8')
+  await fsa.writeFile(`${basePath}/${md5Key}.raw`, document.toString())
+  createFolder(`${basePath}/account/${accountid}`)
+  await fsa.writeFile(`${basePath}/account/${accountid}/${md5Key}`, objectJSON)
   if (object.organizationid) {
     createFolder(`${basePath}/organization/${object.organizationid}`)
-    await fsa.writeFile(`${basePath}/organization/${object.organizationid}/${md5Key}`, JSON.stringify(object))
+    await fsa.writeFile(`${basePath}/organization/${object.organizationid}/${md5Key}`, objectJSON)
   }
   return object
 }
 
-async function generateUniqueKey (req) {
+async function generateUniqueKey () {
   const keyspace = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   while (true) {
     let text = ''
@@ -173,7 +175,7 @@ async function generateUniqueKey (req) {
       text += keyspace.charAt(index)
     }
     try {
-      await load(text, req)
+      await load(text)
     } catch (error) {
       return text
     }

@@ -1,24 +1,28 @@
+const Document = require('../../../document.js')
+
 module.exports = {
   get: async (req) => {
     if (!req.query || !req.query.organizationid) {
       throw new Error('invalid-organizationid')
     }
-    let membership
-    try {
-      membership = await dashboardServer.get(`/api/user/organizations/organization-membership?organizationid=${req.query.organizationid}`, req.accountid, req.sessionid)
-    } catch (error) {
-    }
-    if (!membership) {
+    if (!req.memberships || !req.memberships.length) {
       throw new Error('invalid-organization')
     }
-    let list
-    try {
-      list = await Document.listOrganization(req.query.organizationid)
-    } catch (error) {
+    for (const membership of req.memberships) {
+      if (membership.organizationid === req.query.organizationid) {
+        let list
+        try {
+          list = await Document.listOrganization(req.query.organizationid)
+        } catch (error) {
+        }
+        console.log('organization list', list)
+        if (!list || !list.length) {
+          return null
+        }
+        return list
+      }
     }
-    if (!list || !list.length) {
-      return null
-    }
-    return list
+     console.log('bad organization')
+    throw new Error('invalid-organization')
   } 
  }

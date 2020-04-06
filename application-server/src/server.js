@@ -1,4 +1,3 @@
-const dashboardServer = require('./dashboard-server.js')
 const expressApplicationServer = require('@userdashboard/express-application-server')
 const fs = require('fs')
 const http = require('http')
@@ -7,12 +6,13 @@ const path = require('path')
 const querystring = require('querystring')
 const util = require('util')
 
+const apiCache = {}
 const fileCache = {}
 const errorPage = fs.readFileSync(path.join(__dirname, '/error.html')).toString()
 const homePage = fs.readFileSync(path.join(__dirname, '/home.html')).toString()
 const publicPage = fs.readFileSync(path.join(__dirname, '/public.html')).toString()
 const indexPage = fs.readFileSync(path.join(__dirname, '/index.html')).toString()
-const WhoIs = require('./whois.js')
+const wwwPath = path.join(__dirname, 'www')
 const mimeTypes = {
   js: 'text/javascript',
   css: 'text/css',
@@ -28,7 +28,6 @@ let server
 module.exports = {
   start: async (port, host) => {
     server = await http.createServer(receiveRequest).listen(port, host)
-    console.log('ready')
   },
   stop: async () => {
     if (server) {
@@ -58,45 +57,33 @@ const parsePostData = util.promisify((req, callback) => {
 
 const parseMultiPartData = util.promisify((req, callback) => {
   const form = new Multiparty.Form()
-  return form.parse(req, async (error, fields, files) => {
+  return form.parse(req, async (error, fields) => {
     if (error) {
       return callback(error)
     }
-    req.body = {}
+    const body = {}
     for (const field in fields) {
-      req.body[field] = fields[field][0]
+      body[field] = fields[field][0]
     }
-    req.uploads = {}
-    for (const field in files) {
-      const file = files[field][0]
-      if (!file.size) {
-        continue
-      }
-      const extension = file.originalFilename.toLowerCase().split('.').pop()
-      const type = extension === 'png' ? 'image/png' : 'image/jpeg'
-      req.uploads[field] = {
-        type,
-        buffer: fs.readFileSync(file.path),
-        name: file.originalFilename
-      }
-      fs.unlinkSync(file.path)
-    }
-    return callback()
+    return callback(null, body)
   })
 })
 
 async function staticFile (req, res) {
+  const filePath = path.join(wwwPath, req.urlPath)
   const extension = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase()
   const mimeType = mimeTypes[extension]
   if (!mimeType) {
     return throw500(req, res)
   }
-  let blob = fileCache[filePath]
+  let blob
+  if (!process.env.HOT_RELOAD) {
+    blob = fileCache[filePath]
+  }
   if (blob) {
     res.setHeader('content-type', mimeType)
     return res.end(blob)
   }
-  const filePath = path.join('./www', req.urlPath)
   if (!fs.existsSync(filePath)) {
     return throw404(req, res)
   }
@@ -111,51 +98,71 @@ async function staticFile (req, res) {
 }
 
 async function receiveRequest (req, res) {
+  const question = req.url.indexOf('?')
+  if (question > -1) {
+    req.query = querystring.parse(req.url.substring(question + 1), '&', '=')
+  }
   req.urlPath = req.url.split('?')[0]
   if (req.urlPath === '/') {
     res.setHeader('content-type', 'text/html')
     return res.end(indexPage)
   }
-  if (req.urlPath.startsWith('/public/')) {
+  if (req.urlPath === '/favicon.ico' || 
+      req.urlPath === '/robots.txt' || 
+      req.urlPath.startsWith('/public/')) {
     return staticFile(req, res)
   }
   await expressApplicationServer(req, res, async () => {
     if (req.verified) {
-      req.accountid = req.headers['x-accountid']
-      req.sessionid = req.headers['x-sessionid']
+      if (req.headers['x-account']) {
+        req.accountid = req.headers['x-accountid']
+        req.sessionid = req.headers['x-sessionid']
+        if (req.headers['x-account']) {
+          req.account = JSON.parse(req.headers['x-account'])
+        }
+        if (req.headers['x-organizations']) {
+          req.organizations = JSON.parse(req.headers['x-organizations'])
+        }
+        if (req.headers['x-memberships']) {
+          req.memberships = JSON.parse(req.headers['x-memberships'])
+        }
+      }
     }
     if (!req.accountid) {
+      console.log('bad auth', req.headers, req.url)
       return throw511(req, res)
     }
     if (req.urlPath === '/home') {
       res.setHeader('content-type', 'text/html')
-      if (global.publicDomain) {
-        return res.end(homePage.replace('</html>', `<script>window.publicDomain = "${global.publicDomain}"</script></html>`))
-      } else {
-        return res.end(homePage)
+      const user = {
+        account: req.account,
+        session: req.session
       }
-    }
-    if (req.urlPath === '/whois.js') {
-      const whois = await WhoIs.get(req)
-      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
-      return res.end(JSON.stringify(whois))
+      if (req.organizations) {
+        user.organizations = req.organizations
+      }
+      if (req.memberships) {
+        user.memberships = req.memberships
+      }
+      let injectJS = [`window.user = ${JSON.stringify(user)}`]
+      if (global.publicDomain) {
+        injectJS.push(`window.publicDomain = "${global.publicDomain}"</script>`)
+      }
+      homePageText = homePage.replace('<head>', '<head><script>' + injectJS.join('\n') + '</script>')
+      return res.end(homePageText)
     }
     if (!req.urlPath.startsWith('/api/')) {
       return throw404(req, res)
     }
-    if (!req.accountid) {
-      return throw511(req, res)
-    }
     if (req.urlPath.startsWith('/administrator/')) {
-      const account = await dashboardServer.get(`/api/user/account?accountid=${req.accountid}`, req.accountid, req.sessionid)
-      if (!account.administrator) {
+      if (!req.account.administrator) {
         return throw500(req, res)
       }
     }
     if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'PUT' || req.method === 'DELETE') {
       if (req.headers['content-type'] && req.headers['content-type'].indexOf('multipart/form-data;') > -1) {
         try {
-          await parseMultiPartData(req)
+          req.body = await parseMultiPartData(req)
         } catch (error) {
           return throw500(req, res)
         }
@@ -171,23 +178,37 @@ async function receiveRequest (req, res) {
         }
       }
     }
-    const apiPath = path.join(`./www`, req.urlPath)
+    const apiPath = path.join(wwwPath, `${req.urlPath}.js`)
     if (!fs.existsSync(apiPath)) {
       return throw404(req, res)
     }
-    const api = require(apiPath)
+    let api
+    if (!process.env.HOT_RELOAD) {
+      api = apiCache[apiPath]
+      if (!api) {
+        api = apiCache[apiPath] = require(apiPath)
+      }
+    } else {
+      delete require.cache[require.resolve(apiPath)]
+      api = require(apiPath)
+    }
     const method = req.method.toLowerCase()
     if (!api[method]) {
       return throw404(req, res)
+    }
+    if (api.auth !== false && !req.account) {
+      return throw511(req, res)
     }
     let result
     try {
       result = await api[method](req)
     } catch (error) {
+      console.log(error)
       return throw500(req, res)
     }
+    console.log(result)
     if (!result) {
-      return throw500(req, res)
+      return res.end()
     }
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
     return res.end(JSON.stringify(result))
@@ -208,10 +229,11 @@ function throw511 (req, res) {
 
 function throwError(req, res, error) {
   if (req.urlPath.startsWith('/api/')) {
-    res.writeHead(error, { 'content-type': 'application/json; charset=utf-8' })
+    res.setHeader('content-type', 'application/json; charset=utf-8')
+    res.statusCode = error
     return res.end(`{ "error": "An error ${error} ocurred" }`) 
   }
-  res.setHeader('content-type', 'text/html')
+  res.setHeader('content-type', 'text/html; charset=utf-8')
   res.statusCode = error
   return res.end(errorPage)
 }

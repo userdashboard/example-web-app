@@ -1,5 +1,14 @@
+const Document = require('../../../document.js')
+
 module.exports = {
   post: async (req) => {
+    console.log('creating document', req.body)
+    if (!req.query || !req.query.accountid) {
+      throw new Error('invalid-accountid')
+    }
+    if (req.query.accountid !== req.accountid) {
+      throw new Error('invalid-account')
+    }
     if (!req.body || !req.body.document || !req.body.document.length) {
       throw new Error('invalid-document')
     }
@@ -15,7 +24,7 @@ module.exports = {
           throw new Error('invalid-filename')
         }
         const extension = parts[parts.length - 1].toLowerCase()
-        if (validExtensions.indexOf(extension) === -1) {
+        if (Document.validExtensions.indexOf(extension) === -1) {
           throw new Error('invalid-filename-extension')
         }
       } else {
@@ -32,12 +41,17 @@ module.exports = {
       }
     }
     if (req.body.organizationid) {
-      let membership
-      try {
-        membership = await dashboardServer.get(`/api/user/organizations/organization-membership?organizationid=${req.query.organizationid}`, req.accountid, req.sessionid)
-      } catch (error ){
+      if (!req.memberships || !req.memberships.length) {
+        throw new Error('invalid-organization')
       }
-      if (!membership) {
+      let found 
+      for (const membership of req.memberships) {
+        found = membership.organizationid === req.body.organizationid
+        if (found) {
+          break
+        }
+      }
+      if (!found) {
         throw new Error('invalid-organization')
       }
     }
@@ -47,8 +61,10 @@ module.exports = {
         req.body.document, 
         req.body.documentid, 
         req.body.public, 
+        req.query.accountid,
         req.body.organizationid
       )
+      console.log('created document', document)
     } catch (error) {
       throw new Error(error.message)
     }

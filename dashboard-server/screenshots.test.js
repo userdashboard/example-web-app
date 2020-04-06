@@ -1,28 +1,24 @@
 /* eslint-env mocha */
 const assert = require('assert')
-const childProcess = require('child_process')
 global.applicationPath = __dirname
 const fs = require('fs')
 const pasteText = fs.readFileSync('./node_modules/@userdashboard/dashboard/readme.md').toString()
 let applicationServer
 const TestHelper = require('@userdashboard/organizations/test-helper.js')
 
-before((callback) => {
-  applicationServer = childProcess.exec('bash ../application-server/start-dev.sh')
-  applicationServer.stderr.on('data', (error) => {
-    console.log(error.toString())
-  })
-  applicationServer.stdout.on('data', (buffer) => {
-    if (buffer.toString().indexOf('ready') > -1) {
-      return callback()
-    }
-    console.log(buffer.toString())
-  })  
+before(async () => {
+  applicationServer = require('../application-server/main.js')
+  await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
+})
+
+beforeEach(async () => {
+  global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
+  console.log(global.packageJSON.dashboard)
 })
 
 after(async () => {
   if (applicationServer) {
-    await applicationServer.kill()
+    await applicationServer.stop()
     applicationServer = null
   }
 })
@@ -43,12 +39,29 @@ describe('example-web-app', () => {
       }
     ]
     const result = await req.get()
-    assert.strictEqual(1, 1)
+    assert.strictEqual(result.redirect, '/home')
   })
 
   it('user 1 creates post', async () => {
     const user = await TestHelper.createUser()
     const req = TestHelper.createRequest('/home')
+    req.waitFormComplete = async (page) => {
+      while (true) {
+        const frame = await page.frames().find(f => f.name() === 'application-iframe')
+        if (!frame) {
+          await page.waitFor(100)
+          continue
+        }
+        const postContent = await frame.evaluate(() => {
+          var postContent = document.getElementById('post-content')
+          return postContent.style.display
+        })
+        if (postContent === 'block') {
+          return
+        }
+        await page.waitFor(100)
+      }
+    }
     req.account = user.account
     req.session = user.session
     req.filename = '/src/www/integrations/user-creates-post.test.js'
@@ -56,11 +69,12 @@ describe('example-web-app', () => {
       fill: '#post-creator', 
       body: {
         'post-textarea': pasteText,
-        customid: 'readme.md',
+        documentid: 'readme.md',
         language: 'MarkDown'
       }
     }]
     const result = await req.post()
+    // TODO: can't detect the rendered post 
     assert.strictEqual(1, 1)
   })
 
@@ -85,7 +99,7 @@ describe('example-web-app', () => {
       }
     ]
     const result = await req.post()
-    assert.strictEqual(1, 1)
+    assert.strictEqual(result.redirect.endsWith('message=success'), true)
   })
 
   it('user 1 creates invitation', async () => {
@@ -102,7 +116,9 @@ describe('example-web-app', () => {
         fill: '#submit-form',
         body: {
           name: 'Developers',
-          email: 'organization@email.com'
+          email: 'organization@email.com',
+          'display-name': 'org owner',
+          'display-email': 'owner@organization.com'
         }
       },
       { click: '/account/organizations/create-invitation' },
@@ -113,13 +129,14 @@ describe('example-web-app', () => {
         }
       }
     ]
-    const result = await req.post()
+    await req.post()
     assert.strictEqual(1, 1)
   })
 
   it('user 2 accepts invitation', async () => {
     const user = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
+    global.membershipProfileFields = ['display-name', 'display-email']
     await TestHelper.createProfile(user, {
       'display-name': user.profile.firstName,
       'display-email': user.profile.contactEmail
@@ -143,17 +160,20 @@ describe('example-web-app', () => {
         fill: '#submit-form',
         body: {
           invitationid: user.invitation.invitationid,
-          'secret-code': user.invitation.secretCode
+          'secret-code': user.invitation.secretCode,
+          'display-name': user2.profile.firstName,
+          'display-email': user2.profile.contactEmail
         }
       }
     ]
-    const result = await req.post()
+    await req.post()
     assert.strictEqual(1, 1)
   })
 
   it('user 2 creates shared post', async () => {
     const user = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
+    global.membershipProfileFields = ['display-name', 'display-email']
     await TestHelper.createProfile(user, {
       'display-name': user.profile.firstName,
       'display-email': user.profile.contactEmail
@@ -181,18 +201,36 @@ describe('example-web-app', () => {
         fill: '#post-creator', 
         body: {
           'post-textarea': pasteText,
-          customid: 'readme.md',
+          documentid: 'readme.md',
           language: 'MarkDown',
           organization: 'My organization'
       }
     }]
-    const result = await req.post()
+    req.waitFormComplete = async (page) => {
+      while (true) {
+        const frame = await page.frames().find(f => f.name() === 'application-iframe')
+        if (!frame) {
+          await page.waitFor(100)
+          continue
+        }
+        const postContent = await frame.evaluate(() => {
+          var postContent = document.getElementById('post-content')
+          return postContent.style.display
+        })
+        if (postContent === 'block') {
+          return
+        }
+        await page.waitFor(100)
+      }
+    }
+    await req.post()
     assert.strictEqual(1, 1)
   })
 
   it.only('user 1 views shared post', async () => {
     const user = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
+    global.membershipProfileFields = ['display-name', 'display-email']
     await TestHelper.createProfile(user, {
       'display-name': user.profile.firstName,
       'display-email': user.profile.contactEmail
@@ -203,6 +241,50 @@ describe('example-web-app', () => {
       profileid: user.profile.profileid
     })
     await TestHelper.createInvitation(user)
+    const req = TestHelper.createRequest('/home')
+    req.account = user.account
+    req.session = user.session
+    req.body = {
+      'post-textarea': pasteText,
+      documentid: 'readme.md',
+      language: 'MarkDown',
+      organization: 'My organization'
+    }
+    req.waitBefore = async (page) => {
+      while (true) {
+        const frame = await page.frames().find(f => f.name() === 'application-iframe')
+        if (!frame) {
+          await page.waitFor(100)
+          continue
+        }
+        const postCreator = await frame.evaluate(() => {
+          var postCreator = document.getElementById('post-creator')
+          return postCreator.style.display
+        })
+        if (postCreator === 'block') {
+          return
+        }
+        await page.waitFor(100)
+      } 
+    }
+    req.waitAfter = async (page) => {
+      while (true) {
+        const frame = await page.frames().find(f => f.name() === 'application-iframe')
+        if (!frame) {
+          await page.waitFor(100)
+          continue
+        }
+        const postContent = await frame.evaluate(() => {
+          var postContent = document.getElementById('post-content')
+          return postContent.style.display
+        })
+        if (postContent === 'block') {
+          return
+        }
+        await page.waitFor(100)
+      }
+    }
+    await req.post()
     const user2 = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
     await TestHelper.createProfile(user2, {
@@ -210,34 +292,60 @@ describe('example-web-app', () => {
       'display-email': user2.profile.contactEmail
     })
     await TestHelper.acceptInvitation(user2, user)
-    const req = TestHelper.createRequest('/home')
-    req.account = user2.account
-    req.session = user2.session
-    req.body = {
-      'post-textarea': pasteText,
-      customid: 'readme.md',
-      language: 'MarkDown',
-      organization: 'My organization'
-    }
-    await req.post()
-    const req2 = TestHelper.createRequest('/')
-    req2.account = user.account
-    req2.session = user.session
+
+    const req2 = TestHelper.createRequest('/home')
+    req2.account = user2.account
+    req2.session = user2.session
     req2.filename = '/src/www/integrations/user-views-shared-post.test.js'
     req2.screenshots = [
       { save: true },
-      { hover: '#account-menu-container' },
-      { click: '/account/organizations' },
-      { click: '/account/organizations/create-organization' },
-      {
-        fill: '#submit-form',
-        body: {
-          name: 'Developers',
-          email: 'organization@email.com'
+      { 
+        click: '#organization-list-button', 
+        waitAfter: async (page) => {
+          while (true) {
+            const frame = await page.frames().find(f => f.name() === 'application-iframe')
+            if (!frame) {
+              await page.waitFor(100)
+              continue
+            }
+            const postLink = await frame.evaluate(() => {
+              var postLinks = document.getElementsByTagName('a')
+              for (var i = 0, len = postLinks.length; i < len; i++) {
+                if (postLinks[i].innerHTML === 'readme.md') {
+                  return true
+                }
+              }
+              return false
+            })
+            if (postLink) {
+              return
+            }
+            await page.waitFor(100)
+          }
+        }
+      },
+      { 
+        click: '/document/readme.md', 
+        waitAfter: async (page) => {
+          while (true) {
+            const frame = await page.frames().find(f => f.name() === 'application-iframe')
+            if (!frame) {
+              await page.waitFor(100)
+              continue
+            }
+            const postContent = await frame.evaluate(() => {
+              var postContent = document.getElementById('post-content')
+              return postContent.style.display
+            })
+            if (postContent === 'block') {
+              return
+            }
+            await page.waitFor(100)
+          }
         }
       }
     ]
-    const result = await req2.get()
+    await req2.get()
     assert.strictEqual(1, 1)
   })
 })
