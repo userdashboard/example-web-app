@@ -13,7 +13,6 @@ before(async () => {
 
 beforeEach(async () => {
   global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
-  console.log(global.packageJSON.dashboard)
 })
 
 after(async () => {
@@ -227,7 +226,7 @@ describe('example-web-app', () => {
     assert.strictEqual(1, 1)
   })
 
-  it.only('user 1 views shared post', async () => {
+  it('user 1 views shared post', async () => {
     const user = await TestHelper.createUser()
     global.userProfileFields = ['display-name', 'display-email']
     global.membershipProfileFields = ['display-name', 'display-email']

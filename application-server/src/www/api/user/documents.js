@@ -2,7 +2,6 @@ const Document = require('../../../document.js')
 
 module.exports = {
  get: async (req) => {
-   console.log('load documents', req.query, req.account, req.session)
    if (!req.query || !req.query.accountid) {
      throw new Error('invalid-accountid')
    }

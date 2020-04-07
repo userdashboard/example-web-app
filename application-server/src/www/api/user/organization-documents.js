@@ -15,14 +15,12 @@ module.exports = {
           list = await Document.listOrganization(req.query.organizationid)
         } catch (error) {
         }
-        console.log('organization list', list)
         if (!list || !list.length) {
           return null
         }
         return list
       }
     }
-     console.log('bad organization')
     throw new Error('invalid-organization')
   } 
  }

@@ -2,7 +2,6 @@ const Document = require('../../../document.js')
 
 module.exports = {
   post: async (req) => {
-    console.log('creating document', req.body)
     if (!req.query || !req.query.accountid) {
       throw new Error('invalid-accountid')
     }
@@ -64,7 +63,6 @@ module.exports = {
         req.query.accountid,
         req.body.organizationid
       )
-      console.log('created document', document)
     } catch (error) {
       throw new Error(error.message)
     }

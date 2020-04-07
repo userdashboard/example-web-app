@@ -129,7 +129,6 @@ async function receiveRequest (req, res) {
       }
     }
     if (!req.accountid) {
-      console.log('bad auth', req.headers, req.url)
       return throw511(req, res)
     }
     if (req.urlPath === '/home') {
@@ -203,10 +202,8 @@ async function receiveRequest (req, res) {
     try {
       result = await api[method](req)
     } catch (error) {
-      console.log(error)
       return throw500(req, res)
     }
-    console.log(result)
     if (!result) {
       return res.end()
     }

@@ -13,7 +13,6 @@ module.exports = {
     if (!result) {
       throw new Error('invalid-documentid')
     }
-    console.log('loaded document', result)
     if (req.account.accountid !== result.accountid) {
       if (!result.organizationid) {
         throw new Error('invalid-document')

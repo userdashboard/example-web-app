@@ -69,7 +69,6 @@ window.onload = function () {
   // sets up your own posts with delete options
   listPosts()
   // sets up your organization's posts
-  console.log('user', JSON.stringify(window.user))
   if (window.user.organizations && window.user.organizations.length) {
     for (i = 0, len = window.user.organizations.length; i < len; i++) {
       listPosts(window.user.organizations[i].organizationid)
@@ -78,11 +77,9 @@ window.onload = function () {
       option.text = window.user.organizations[i].name
       elements.organization.appendChild(option)
     }
-    console.log(elements.organization.innerHTML)
   }
   // display the initial content
   var content = window.sessionStorage.getItem('content')
-  console.log('showing content', content)
   showContent(content || 'post-creator')
   if (content === 'post-content') {
     var post = window.sessionStorage.getItem('post')
@@ -94,9 +91,7 @@ window.onload = function () {
 
 function listPosts (organizationid) {
   var path = organizationid ? '/api/user/organization-documents?organizationid=' + organizationid : '/api/user/documents?accountid=' + window.user.account.accountid
-  console.log('listing posts', path)
   return send(path, null, 'GET', function (error, posts) {
-    console.log('posts', JSON.stringify(posts))
     if (error) {
       return showMessage(error.message, 'error')
     }
@@ -168,10 +163,8 @@ function saveNewDocument () {
     return showMessage('No document to save', 'error')
   }
   postSettings.document = encodeURI(elements['post-textarea'].value)
-  console.log('creating document', JSON.stringify(postSettings))
   return send('/api/user/create-document?accountid=' + window.user.account.accountid, postSettings, 'POST', function (error, result) {
     if (error) {
-      console.log('exception', error.message, result, JSON.stringify(postSettings))
       return showMessage(error.message, 'error')
     }
     renderPostRow(!postSettings.organization, result)
@@ -250,7 +243,6 @@ function showPostContents (post) {
   }
   elements['post-preview'].firstChild.innerHTML = high.value
   elements['post-preview'].focus()
-  console.log('showing post contents', JSON.stringify(post, null, '  '))
   addLineNumbers(post.document.split('\n').length)
   return showContent('post-content')
 }
@@ -295,7 +287,6 @@ function renderPostRow (personal, meta) {
 }
 
 function showContent (type) {
-  console.log('showing content', type)
   window.sessionStorage.setItem('content', type)
   // active content button
   elements['create-button'].className = type === 'post-creator' ? 'active' : ''
