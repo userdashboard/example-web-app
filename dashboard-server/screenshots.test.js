@@ -25,7 +25,7 @@ after(async () => {
 describe('example-web-app', () => {
   it('user 1 registers', async () => {
     const req = TestHelper.createRequest('/')
-    req.filename = '/src/www/integrations/user-creates-account.test.js'
+    req.filename = '/src/www/example-web-app/user-creates-account.test.js'
     req.screenshots = [
       { click: '/account/register' },
       { 
@@ -63,7 +63,7 @@ describe('example-web-app', () => {
     }
     req.account = user.account
     req.session = user.session
-    req.filename = '/src/www/integrations/user-creates-post.test.js'
+    req.filename = '/src/www/example-web-app/user-creates-post.test.js'
     req.screenshots = [{ 
       fill: '#post-creator', 
       body: {
@@ -82,7 +82,7 @@ describe('example-web-app', () => {
     const req = TestHelper.createRequest('/home')
     req.account = user.account
     req.session = user.session
-    req.filename = '/src/www/integrations/user-creates-organization.test.js'
+    req.filename = '/src/www/example-web-app/user-creates-organization.test.js'
     req.screenshots = [
       { hover: '#account-menu-container' },
       { click: '/account/organizations' },
@@ -106,7 +106,7 @@ describe('example-web-app', () => {
     const req = TestHelper.createRequest('/home')
     req.account = user.account
     req.session = user.session
-    req.filename = '/src/www/integrations/user-creates-invitation.test.js'
+    req.filename = '/src/www/example-web-app/user-creates-invitation.test.js'
     req.screenshots = [
       { hover: '#account-menu-container' },
       { click: '/account/organizations' },
@@ -150,7 +150,7 @@ describe('example-web-app', () => {
     const req = TestHelper.createRequest('/')
     req.account = user2.account
     req.session = user2.session
-    req.filename = '/src/www/integrations/user-accepts-invitation.test.js'
+    req.filename = '/src/www/example-web-app/user-accepts-invitation.test.js'
     req.screenshots = [
       { hover: '#account-menu-container' },
       { click: '/account/organizations' },
@@ -193,7 +193,7 @@ describe('example-web-app', () => {
     const req = TestHelper.createRequest('/home')
     req.account = user2.account
     req.session = user2.session
-    req.filename = '/src/www/integrations/user-creates-shared-post.test.js'
+    req.filename = '/src/www/example-web-app/user-creates-shared-post.test.js'
     req.screenshots = [
       { save: true }, 
       { 
@@ -295,7 +295,7 @@ describe('example-web-app', () => {
     const req2 = TestHelper.createRequest('/home')
     req2.account = user2.account
     req2.session = user2.session
-    req2.filename = '/src/www/integrations/user-views-shared-post.test.js'
+    req2.filename = 'user-views-shared-post.test.js'
     req2.screenshots = [
       { save: true },
       { 
