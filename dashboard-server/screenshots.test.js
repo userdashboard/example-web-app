@@ -295,7 +295,7 @@ describe('example-web-app', () => {
     const req2 = TestHelper.createRequest('/home')
     req2.account = user2.account
     req2.session = user2.session
-    req2.filename = 'user-views-shared-post.test.js'
+    req2.filename = '/src/www/user-views-shared-post.test.js'
     req2.screenshots = [
       { save: true },
       { 
