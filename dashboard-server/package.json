@@ -9,11 +9,10 @@
   "license": "ISC",
   "dependencies": {
     "@userdashboard/dashboard": "^1.0.186",
-    "@userdashboard/organizations": "^1.0.85",
-    "server-html": "^9.0.0"
+    "@userdashboard/organizations": "^1.0.85"
   },
   "dashboard": {
-    "title": "Hastebin",
+    "title": "Example web app",
     "modules": [
       "@userdashboard/organizations"
     ],
