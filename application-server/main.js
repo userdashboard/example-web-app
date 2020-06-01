@@ -12,7 +12,7 @@ module.exports = {
     port = port || process.env.APPLICATION_SERVER_PORT || process.env.PORT || 3000
     await server.start(port, process.env.HOST || 'localhost')
   },
-  stop: async () =>{ 
+  stop: async () => {
     server.stop()
   }
 }

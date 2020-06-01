@@ -28,8 +28,8 @@ describe('example-web-app', () => {
     req.filename = '/src/www/user-creates-account.test.js'
     req.screenshots = [
       { click: '/account/register' },
-      { 
-        fill: '#submit-form', 
+      {
+        fill: '#submit-form',
         body: {
           username: 'FirstUser',
           password: '12345678',
@@ -64,16 +64,17 @@ describe('example-web-app', () => {
     req.account = user.account
     req.session = user.session
     req.filename = '/src/www/user-creates-post.test.js'
-    req.screenshots = [{ 
-      fill: '#post-creator', 
+    req.screenshots = [{
+      fill: '#post-creator',
       body: {
         'post-textarea': pasteText,
         documentid: 'readme.md',
         language: 'MarkDown'
       }
     }]
-    const result = await req.post()
-    // TODO: can't detect the rendered post 
+    // const result = await req.post()
+    await req.post()
+    // TODO: can't detect the rendered post
     assert.strictEqual(1, 1)
   })
 
@@ -195,16 +196,16 @@ describe('example-web-app', () => {
     req.session = user2.session
     req.filename = '/src/www/user-creates-shared-post.test.js'
     req.screenshots = [
-      { save: true }, 
-      { 
-        fill: '#post-creator', 
+      { save: true },
+      {
+        fill: '#post-creator',
         body: {
           'post-textarea': pasteText,
           documentid: 'readme.md',
           language: 'MarkDown',
           organization: 'My organization'
-      }
-    }]
+        }
+      }]
     req.waitFormComplete = async (page) => {
       while (true) {
         const frame = await page.frames().find(f => f.name() === 'application-iframe')
@@ -264,7 +265,7 @@ describe('example-web-app', () => {
           return
         }
         await page.waitFor(100)
-      } 
+      }
     }
     req.waitAfter = async (page) => {
       while (true) {
@@ -298,8 +299,8 @@ describe('example-web-app', () => {
     req2.filename = '/src/www/user-views-shared-post.test.js'
     req2.screenshots = [
       { save: true },
-      { 
-        click: '#organization-list-button', 
+      {
+        click: '#organization-list-button',
         waitAfter: async (page) => {
           while (true) {
             const frame = await page.frames().find(f => f.name() === 'application-iframe')
@@ -323,8 +324,8 @@ describe('example-web-app', () => {
           }
         }
       },
-      { 
-        click: '/document/readme.md', 
+      {
+        click: '/document/readme.md',
         waitAfter: async (page) => {
           while (true) {
             const frame = await page.frames().find(f => f.name() === 'application-iframe')
