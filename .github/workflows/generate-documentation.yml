@@ -13,10 +13,6 @@ jobs:
     - uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - uses: zhulik/redis-action@1.1.0
-      with:
-        redis version: "5"
-        number of databases: 1
     - name: Set up project
       run: |
         git config --global user.name "${{ secrets.NAME }}"
@@ -25,22 +21,20 @@ jobs:
         npm install
         cd ../dashboard-server
         npm install
-        npm install faker puppeteer@2.1.1 @userdashboard/storage-redis
+        npm install faker puppeteer@2.1.1
         npm install -g mocha
         echo "global.applicationPath = __dirname" > main.js
     - name: Generate documentation
       run: |
-        mocha --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 screenshots.test.js
+        mocha --retries 2 --file main.js --bail --exit --full-trace --timeout 90000000 screenshots.test.js
         mocha --grep returns --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
         mocha --grep screenshots --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
-      working-directory: "dashboard-server"
+      working-directory: "./dashboard-server"
       env:
         NODE_ENV: testing
         FAST_START: true
         DASHBOARD_SERVER: "http://localhost:9000"
         DOMAIN: "localhost"
-        STORAGE: "@userdashboard/storage-redis"
-        REDIS_URL: "redis://localhost:6379"
         GENERATE_SITEMAP_TXT: false
         GENERATE_API_TXT: false   
         GENERATE_RESPONSE: true
@@ -52,7 +46,6 @@ jobs:
         APPLICATION_SERVER_PORT: 8213
         APPLICATION_SERVER_TOKEN: "this is the token"
         LOG_LEVEL: "info,error,warn,log"
-        START_APPLICATION_SERVER: "false"
     - name: Deploy to Github Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
