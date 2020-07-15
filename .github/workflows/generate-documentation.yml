@@ -27,11 +27,12 @@ jobs:
         npm install
         npm install faker puppeteer@2.1.1 @userdashboard/storage-redis
         npm install -g mocha
+        echo "global.applicationPath = __dirname" > main.js
     - name: Generate documentation
       run: |
-        mocha --retries 2 --file test-helper.js --bail --exit --full-trace --recursive --timeout 90000000 screenshots.test.js
-        mocha --grep returns --retries 2 --file test-helper.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
-        mocha --grep screenshots --retries 2 --file test-helper.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
+        mocha --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 screenshots.test.js
+        mocha --grep returns --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
+        mocha --grep screenshots --retries 2 --file main.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
       working-directory: "dashboard-server"
       env:
         NODE_ENV: testing
