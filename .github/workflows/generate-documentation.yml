@@ -52,6 +52,7 @@ jobs:
         APPLICATION_SERVER_PORT: 8213
         APPLICATION_SERVER_TOKEN: "this is the token"
         LOG_LEVEL: "info,error,warn,log"
+        START_APPLICATION_SERVER: "false"
     - name: Deploy to Github Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
