@@ -21,7 +21,9 @@ jobs:
       run: |
         git config --global user.name "${{ secrets.NAME }}"
         git config --global user.email "${{ secrets.EMAIL }}"
-        cd dashboard-server
+        cd application-server
+        npm install
+        cd ../dashboard-server
         npm install
         npm install faker puppeteer@2.1.1 @userdashboard/storage-redis
         npm install -g mocha
