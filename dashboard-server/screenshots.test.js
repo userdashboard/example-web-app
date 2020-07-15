@@ -3,24 +3,7 @@ const assert = require('assert')
 global.applicationPath = __dirname
 const fs = require('fs')
 const pasteText = fs.readFileSync('./node_modules/@userdashboard/dashboard/readme.md').toString()
-let applicationServer
 const TestHelper = require('@userdashboard/organizations/test-helper.js')
-
-before(async () => {
-  applicationServer = require('../application-server/main.js')
-  await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
-})
-
-beforeEach(async () => {
-  global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
-})
-
-after(async () => {
-  if (applicationServer) {
-    await applicationServer.stop()
-    applicationServer = null
-  }
-})
 
 describe('example-web-app', () => {
   it('user 1 registers', async () => {
