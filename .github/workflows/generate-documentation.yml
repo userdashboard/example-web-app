@@ -26,9 +26,9 @@ jobs:
         echo "global.applicationPath = __dirname" > temp.js
     - name: Generate documentation
       run: |
-        mocha --file temp.js --bail --exit --full-trace --timeout 90000000 screenshots.test.js
-        mocha --grep returns --retries 2 --file temp.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
-        mocha --grep screenshots --retries 2 --file temp.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/{,!(public)}/*.test.js"
+        mocha --file temp.js --bail --exit --full-trace --timeout 90000 screenshots.test.js
+        mocha --grep returns --retries 2 --file temp.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/*.test.js"
+        mocha --grep screenshots --retries 2 --file temp.js --bail --exit --full-trace --recursive --timeout 90000000 "./node_modules/@userdashboard/**/*.test.js"
       working-directory: "./dashboard-server"
       env:
         NODE_ENV: testing
@@ -42,7 +42,7 @@ jobs:
         GENERATE_SCREENSHOTS: true
         RESPONSE_PATH: "/home/runner/work/example-web-app/example-web-app/documentation"
         SCREENSHOT_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/screenshots"
-        SCREENSHOT_LANGUAGES: "en,es,af,bg,pl,tr,hu,vi"
+        SCREENSHOT_LANGUAGES: "en"
         APPLICATION_SERVER: "http://localhost:9213"
         APPLICATION_SERVER_PORT: 9213
         APPLICATION_SERVER_TOKEN: "this is the token"
