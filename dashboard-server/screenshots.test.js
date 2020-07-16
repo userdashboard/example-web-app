@@ -11,6 +11,7 @@ describe('example-web-app', () => {
     const x = await req2.get()
     console.log(x)
     console.log(global.sitemap['/'])
+    console.log(global.applicationServer)
 
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/user-creates-account.test.js'
