@@ -7,6 +7,10 @@ const TestHelper = require('./test-helper.js')
 
 describe('example-web-app', () => {
   it('user 1 registers', async () => {
+    const req2 = TestHelper.createRequest('/')
+    const x = await req2.get()
+    console.log(x)
+
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/user-creates-account.test.js'
     req.screenshots = [
