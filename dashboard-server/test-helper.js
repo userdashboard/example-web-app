@@ -10,10 +10,14 @@ before(async () => {
   applicationServer = require('../application-server/main.js')
   await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
   global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
+  global.applicationServerToken = process.env.APPLICATION_SERVER_TOKEN
+  console.log('screenshots before')
 })
 
 beforeEach(async () => {
   global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
+  global.applicationServerToken = process.env.APPLICATION_SERVER_TOKEN
+  console.log('screenshots beforeEach')
 })
 
 after(async () => {
