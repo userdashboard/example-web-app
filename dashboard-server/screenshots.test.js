@@ -10,6 +10,7 @@ describe('example-web-app', () => {
     const req2 = TestHelper.createRequest('/')
     const x = await req2.get()
     console.log(x)
+    console.log(global.sitemap['/'])
 
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/user-creates-account.test.js'
