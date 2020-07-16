@@ -12,7 +12,7 @@ describe('example-web-app', () => {
     console.log(x)
     console.log(global.sitemap['/'])
     console.log(global.applicationServer)
-
+    console.log(global)
     const req = TestHelper.createRequest('/')
     req.filename = '/src/www/user-creates-account.test.js'
     req.screenshots = [
