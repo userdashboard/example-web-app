@@ -9,6 +9,7 @@ before(async () => {
   }
   applicationServer = require('../application-server/main.js')
   await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
+  global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
 })
 
 beforeEach(async () => {
