@@ -2,6 +2,8 @@
 global.applicationPath = __dirname
 let applicationServer
 
+module.exports = require('@userdashboard/organizations/test-helper.js')
+
 before(async () => {
   console.log('starting application server', process.env.APPLICATION_SERVER_PORT, applicationServer)
   if (applicationServer) {
@@ -26,5 +28,3 @@ after(async () => {
     applicationServer = null
   }
 })
-
-module.exports = require('@userdashboard/organizations/test-helper.js')
