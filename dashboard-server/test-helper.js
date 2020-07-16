@@ -21,3 +21,5 @@ after(async () => {
     applicationServer = null
   }
 })
+
+module.exports = require('@userdashboard/organizations/test-helper.js')
