@@ -3,7 +3,7 @@ const assert = require('assert')
 global.applicationPath = __dirname
 const fs = require('fs')
 const pasteText = fs.readFileSync('./node_modules/@userdashboard/dashboard/readme.md').toString()
-const TestHelper = require('@userdashboard/organizations/test-helper.js')
+const TestHelper = require('./test-helper.js')
 
 describe('example-web-app', () => {
   it('user 1 registers', async () => {
