@@ -3,6 +3,10 @@ global.applicationPath = __dirname
 let applicationServer
 
 before(async () => {
+  console.log('starting application server', process.env.APPLICATION_SERVER_PORT)
+  if (applicationServer) {
+    return
+  }
   applicationServer = require('../application-server/main.js')
   await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
 })
