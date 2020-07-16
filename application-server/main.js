@@ -10,6 +10,7 @@ module.exports = {
   start: async (port) => {
     server = require('./src/server.js')
     port = port || process.env.APPLICATION_SERVER_PORT || process.env.PORT || 3000
+    console.log('starting application server', port)
     await server.start(port, process.env.HOST || 'localhost')
   },
   stop: async () => {
