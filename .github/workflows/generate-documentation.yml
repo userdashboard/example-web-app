@@ -42,8 +42,8 @@ jobs:
         RESPONSE_PATH: "/home/runner/work/example-web-app/example-web-app/documentation"
         SCREENSHOT_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/screenshots"
         SCREENSHOT_LANGUAGES: "en,es,af,bg,pl,tr,hu,vi"
-        APPLICATION_SERVER: "http://localhost:8213"
-        APPLICATION_SERVER_PORT: 8213
+        APPLICATION_SERVER: "http://localhost:9213"
+        APPLICATION_SERVER_PORT: 9213
         APPLICATION_SERVER_TOKEN: "this is the token"
         LOG_LEVEL: "info,error,warn,log"
     - name: Deploy to Github Pages

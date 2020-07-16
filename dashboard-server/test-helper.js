@@ -3,7 +3,7 @@ global.applicationPath = __dirname
 let applicationServer
 
 before(async () => {
-  console.log('starting application server', process.env.APPLICATION_SERVER_PORT)
+  console.log('starting application server', process.env.APPLICATION_SERVER_PORT, applicationServer)
   if (applicationServer) {
     return
   }
