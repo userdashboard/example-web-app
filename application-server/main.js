@@ -8,6 +8,9 @@ global.applicationServerToken = process.env.APPLICATION_SERVER_TOKEN
 let server
 module.exports = {
   start: async (port) => {
+    if (server) {
+      throw new Error('who restarted this...')
+    }
     server = require('./src/server.js')
     port = port || process.env.APPLICATION_SERVER_PORT || process.env.PORT || 3000
     console.log('starting application server', port)
