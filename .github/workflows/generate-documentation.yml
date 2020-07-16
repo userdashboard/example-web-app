@@ -34,6 +34,7 @@ jobs:
         NODE_ENV: testing
         FAST_START: true
         DASHBOARD_SERVER: "http://localhost:9000"
+        PORT: 9000
         DOMAIN: "localhost"
         GENERATE_SITEMAP_TXT: false
         GENERATE_API_TXT: false   
