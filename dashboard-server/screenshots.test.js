@@ -241,7 +241,7 @@ describe('example-web-app', () => {
         }
         const postCreator = await frame.evaluate(() => {
           var postCreator = document.getElementById('post-creator')
-          return postCreator.style.display
+          return postCreator ? postCreator.style.display : null
         })
         if (postCreator === 'block') {
           return
@@ -258,7 +258,7 @@ describe('example-web-app', () => {
         }
         const postContent = await frame.evaluate(() => {
           var postContent = document.getElementById('post-content')
-          return postContent.style.display
+          return postContent ? postContent.style.display : null
         })
         if (postContent === 'block') {
           return
@@ -274,7 +274,6 @@ describe('example-web-app', () => {
       'display-email': user2.profile.contactEmail
     })
     await TestHelper.acceptInvitation(user2, user)
-
     const req2 = TestHelper.createRequest('/home')
     req2.account = user2.account
     req2.session = user2.session
@@ -292,6 +291,9 @@ describe('example-web-app', () => {
             }
             const postLink = await frame.evaluate(() => {
               var postLinks = document.getElementsByTagName('a')
+              if (!postLinks || !postLinks.length) {
+                return false
+              }
               for (var i = 0, len = postLinks.length; i < len; i++) {
                 if (postLinks[i].innerHTML === 'readme.md') {
                   return true
@@ -299,10 +301,10 @@ describe('example-web-app', () => {
               }
               return false
             })
-            if (postLink) {
-              return
-            }
             await page.waitFor(100)
+            if (postLink) {
+              return page.waitFor(100)
+            }
           }
         }
       },
@@ -317,7 +319,7 @@ describe('example-web-app', () => {
             }
             const postContent = await frame.evaluate(() => {
               var postContent = document.getElementById('post-content')
-              return postContent.style.display
+              return postContent ? postContent.style.display : null
             })
             if (postContent === 'block') {
               return

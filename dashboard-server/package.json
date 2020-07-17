@@ -8,8 +8,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@userdashboard/dashboard": "^1.0.274",
-    "@userdashboard/organizations": "^1.0.112"
+    "@userdashboard/dashboard": "^1.0.278",
+    "@userdashboard/organizations": "^1.0.112",
+    "@userdashboard/storage-redis": "^1.0.22",
+    "faker": "^4.1.0",
+    "puppeteer": "^2.1.1"
   },
   "dashboard": {
     "title": "Example web app",
