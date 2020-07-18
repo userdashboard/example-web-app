@@ -1,5 +1,4 @@
 /* eslint-env mocha */
-global.applicationPath = __dirname
 let applicationServer
 
 module.exports = require('@userdashboard/organizations/test-helper.js')
