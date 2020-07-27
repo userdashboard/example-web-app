@@ -47,7 +47,7 @@ jobs:
         GENERATE_SCREENSHOTS: true
         RESPONSE_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/example-web-app"
         SCREENSHOT_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/screenshots/example-web-app"
-        SCREENSHOT_LANGUAGES: "en"
+        SCREENSHOT_LANGUAGES: "en,es,af,bg,pl,tr,hu,vi"
         APPLICATION_SERVER: "http://localhost:9213"
         APPLICATION_SERVER_PORT: 9213
         APPLICATION_SERVER_TOKEN: "this is the token"
