@@ -8,8 +8,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@userdashboard/dashboard": "^1.0.283",
-    "@userdashboard/organizations": "^1.0.115",
+    "@userdashboard/dashboard": "^1.0.297",
+    "@userdashboard/organizations": "^1.0.124",
     "@userdashboard/storage-redis": "^1.0.22",
     "faker": "^4.1.0",
     "puppeteer": "^2.1.1"
