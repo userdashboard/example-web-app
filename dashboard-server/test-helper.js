@@ -1,7 +1,10 @@
 /* eslint-env mocha */
 let applicationServer
 
-module.exports = require('@userdashboard/organizations/test-helper.js')
+const TestHelper = module.exports = require('@userdashboard/organizations/test-helper.js')
+TestHelper.defaultConfiguration.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
+TestHelper.defaultConfiguration.applicationServerPort = process.env.APPLICATION_SERVER_PORT
+TestHelper.defaultConfiguration.applicationServerToken = 'token'
 
 before(async () => {
   if (applicationServer) {
@@ -9,14 +12,8 @@ before(async () => {
   }
   applicationServer = require('../application-server/main.js')
   await applicationServer.start(process.env.APPLICATION_SERVER_PORT)
-  global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
-  global.applicationServerToken = process.env.APPLICATION_SERVER_TOKEN
 })
 
-beforeEach(async () => {
-  global.applicationServer = `http://localhost:${process.env.APPLICATION_SERVER_PORT}`
-  global.applicationServerToken = process.env.APPLICATION_SERVER_TOKEN
-})
 
 after(async () => {
   if (applicationServer) {
