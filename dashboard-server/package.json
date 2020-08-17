@@ -9,8 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@userdashboard/dashboard": "^1.0.302",
-    "@userdashboard/organizations": "^1.0.126",
+    "@userdashboard/dashboard": "^1.0.303",
+    "@userdashboard/organizations": "^1.0.127",
     "@userdashboard/storage-redis": "^1.0.22",
     "faker": "^4.1.0",
     "puppeteer": "^2.1.1"
