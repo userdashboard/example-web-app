@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@userdashboard/dashboard": "^1.0.303",
+    "@userdashboard/dashboard": "^1.0.304",
     "@userdashboard/organizations": "^1.0.127",
     "@userdashboard/storage-redis": "^1.0.22",
     "faker": "^4.1.0",
