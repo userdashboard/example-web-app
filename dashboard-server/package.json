@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@userdashboard/dashboard": "^1.0.304",
-    "@userdashboard/organizations": "^1.0.127",
+    "@userdashboard/organizations": "^1.0.128",
     "@userdashboard/storage-redis": "^1.0.22",
     "faker": "^4.1.0",
     "puppeteer": "^2.1.1"
