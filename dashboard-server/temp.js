@@ -1,1 +1,0 @@
-global.applicationPath = __dirname
