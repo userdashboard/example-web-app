@@ -1,6 +1,6 @@
-# Example web app:  Pastebin
+# Example web app
 
-## Converting hastebin to a web app with user accounts and organizations
+## Creating a "PasteBin" web app with user accounts and organizations
 
 This example project started as a copy of [Hastebin](https://github.com/seejohnrun/haste-server).  It is a 'pastebin' website you post code and text to share.  The original Hastebin application has no user accounts, all posts are anonymous and publicly accessible via a generated URL.  It is a single-page web app using client-side JavaScript and a server-side API to manage documents posted by guests.
 
