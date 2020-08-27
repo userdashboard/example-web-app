@@ -43,7 +43,7 @@ jobs:
         GENERATE_API_TXT: false   
         GENERATE_RESPONSE: true
         GENERATE_SCREENSHOTS: true
-        RESPONSE_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/example-web-app"
+        RESPONSE_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/api/example-web-app"
         SCREENSHOT_PATH: "/home/runner/work/example-web-app/example-web-app/documentation/screenshots/example-web-app"
         SCREENSHOT_LANGUAGES: "en,es"
         APPLICATION_SERVER: "http://localhost:9213"
