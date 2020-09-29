@@ -1,6 +1,14 @@
 # Example web app
 
-## Creating a "PasteBin" web app with user accounts and organizations
+#### Index
+
+- [Introduction](#introduction)
+- [Application server structure](#application-server-structure)
+- [Dashboard server structure](#dashboard-server-structure)
+- [Starting the dashboard and application servers](#starting-the-dashboard-and-application-servers)
+- [Github repository](https://github.com/userdashboard/example-web-app)
+
+## Introduction
 
 This example project started as a copy of [Hastebin](https://github.com/seejohnrun/haste-server).  It is a 'pastebin' website you post code and text to share.  The original Hastebin application has no user accounts, all posts are anonymous and publicly accessible via a generated URL.  It is a single-page web app using client-side JavaScript and a server-side API to manage documents posted by guests.
 
@@ -10,19 +18,17 @@ After integrating Dashboard the pastebin has user registrations, organizations, 
 
 ## Application server structure
 
-This example is a single-page app and the client-side JavaScript requires a HTTP API to manipulate data.   The API is split into users and for administrators with endpoints for listing, creating and deleting documents.  Application servers can be written in any language or stack.
-
 Dashboard requires application servers provide at a minimum the `/` guest index page and a `/home` application home page.  This example project also serves static assets from the `/public` folder.  Dashboard skips authentication for requests to anything within `/public` so assets serve faster.
 
-Dashboard's content can be styled by serving a `/public/content-additional.css` for forms and `/public/content-template.css` for full-page content like signing in.  This example web app uses the `-additional.css` files to apply a consistent color scheme between application and dashboard content.
+This example is a single-page app and the client-side JavaScript requires a HTTP API to manipulate data.   This API is divided into users and administrators with endpoints for listing, creating and deleting documents.  This application server is written in NodeJS but you can use any programming language as communication between servers occurs over HTTP.
 
-Requests made by your Dashboard server to your application server can be optionally verified using a shared signature.  This example confirms the requests are made from its Dashboard server.  If an application server isn't publicly accessible this may not be required.
+This application server styles Dashboard content by serving a `/public/content-additional.css` for pages and `/public/content-template.css` for Dashboard's template.  These CSS files allow Dashboard content to look similar in appearance to the application.
 
-User data is required to create posts and determine if you or an organization you are in can access posts.  This data is received in HTTP headers when Dashboard proxies the application server.  It could alternatively be fetched as required via Dashboard's APIs, but since this is a single-page app with just a few API routes the data is almost always required.
+User data is required to create posts and determine if you or an organization you are in can access posts.  This data is received in HTTP headers when Dashboard proxies the application server.  It could alternatively be fetched on demand via Dashboard's APIs using HTTP but is instead bundled with requests to the application server.
 
 ## Dashboard server structure
 
-Dashboard is a web application.  It provides a server, user interface and APIs for basic account and session management for web application users and administrators.  Dashboard modules can add UI and API content.  This example project uses the `Organizations` module to allow users to create posts shared with groups of other users.  Dashboard modules are installed with `npm` and activated in the `package.json`.
+Dashboard provides a server, user interface and APIs for basic account and session management for web application users and administrators.  This example project uses the `Organizations` module to allow users to create posts shared with groups of other users.  Dashboard modules are installed with `npm` and activated in the `package.json`.
 
 The application server's API is sharing the `/api/user` and `/api/administrator` structure of Dashboard.  By default Dashboard APIs are not publicly accessible.  You can set `ALLOW_PUBLIC_API=true` in the environment but that exposes the entire Dashboard and module APIs to client-side access.  If you set `ALLOW_PUBLIC_API=true` and added `CORS` headers for cross-origin requests your APIs would be accessible from any permitted website. 
 
